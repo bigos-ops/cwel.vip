@@ -3862,10 +3862,9 @@ function Library:CreateWindow(...)
 
     Library:GiveSignal(RenderStepped:Connect(PlacePreview));
     task.defer(PlacePreview);
-
-    Library:OnUnload(function()
-        PreviewGui:Destroy();
-    end);
+    -- PreviewGui lives under Library.ScreenGui, so Library:Unload() cleans it up.
+    -- Do NOT call Library:OnUnload here: that API overwrites itself and would be
+    -- invoked (not registered) by the next consumer that calls it.
     -- end of library esp preview
 
     return Window;
