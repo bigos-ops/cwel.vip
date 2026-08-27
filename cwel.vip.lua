@@ -3689,7 +3689,7 @@ function Library:CreateWindow(...)
         BorderSizePixel = 0;
         Position = UDim2.fromOffset(Outer.AbsolutePosition.X + Outer.AbsoluteSize.X + 10, Outer.AbsolutePosition.Y + 25);
         Size = UDim2.fromOffset(220, 330);
-        Visible = false;
+        Visible = true;
         ZIndex = 50;
         Parent = ScreenGui;
     });
@@ -3799,6 +3799,8 @@ function Library:CreateWindow(...)
     });
 
     local Preview = {};
+    Preview.Visible = true;
+
     function Preview:SetVisible(Value)
         self.Visible = not not Value;
         PreviewGui.Visible = self.Visible and Outer.Visible;
@@ -3823,7 +3825,12 @@ function Library:CreateWindow(...)
     Window.ESPPreview = Preview;
 
     local function PositionPreview()
-        PreviewGui.Position = UDim2.fromOffset(Outer.AbsolutePosition.X + Outer.AbsoluteSize.X + 10, Outer.AbsolutePosition.Y + 25);
+        local Viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080);
+        local RightPosition = Outer.AbsolutePosition.X + Outer.AbsoluteSize.X + 10;
+        local LeftPosition = Outer.AbsolutePosition.X - PreviewGui.AbsoluteSize.X - 10;
+        local X = RightPosition + PreviewGui.AbsoluteSize.X <= Viewport.X and RightPosition or math.max(8, LeftPosition);
+
+        PreviewGui.Position = UDim2.fromOffset(X, math.max(8, Outer.AbsolutePosition.Y + 25));
         PreviewGui.Visible = Preview.Visible and Outer.Visible;
     end;
 
