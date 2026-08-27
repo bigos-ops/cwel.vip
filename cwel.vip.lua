@@ -2692,9 +2692,29 @@ do
         return Depbox;
     end;
 
-    BaseGroupbox.__index = Funcs;
+    BaseGroupbox.__index = function(Table, Key)
+        -- Prefer BaseGroupbox methods, fall back to BaseAddons (shared addon methods)
+        if Funcs[Key] ~= nil then
+            return Funcs[Key]
+        end
+
+        if BaseAddons and BaseAddons.__index and BaseAddons.__index[Key] ~= nil then
+            return BaseAddons.__index[Key]
+        end
+
+        return nil
+    end;
+
     BaseGroupbox.__namecall = function(Table, Key, ...)
-        return Funcs[Key](...);
+        local Fn = Funcs[Key]
+
+        if not Fn and BaseAddons and BaseAddons.__index then
+            Fn = BaseAddons.__index[Key]
+        end
+
+        if Fn then
+            return Fn(...)
+        end
     end;
 end;
 
@@ -3460,8 +3480,12 @@ function Library:CreateWindow(...)
                     local Size = 0;
 
                     for _, Element in next, Tab.Container:GetChildren() do
-                        if (not Element:IsA('UIListLayout')) and Element.Visible then
-                            Size = Size + Element.Size.Y.Offset;
+                        if Element:IsA('UIListLayout') then
+                            -- skip layout objects
+                        else
+                            if Element:IsA('GuiObject') and Element.Visible then
+                                Size = Size + (Element.Size and Element.Size.Y and Element.Size.Y.Offset or 0);
+                            end;
                         end;
                     end;
 
