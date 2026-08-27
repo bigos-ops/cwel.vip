@@ -45,7 +45,7 @@ local Library = {
 
     -- Corner radius for Linoria-like look
     CornerRadius = UDim.new(0, 4);
-    LeftAccentWidth = 4;
+    LeftAccentWidth = 2;
     
     OpenedFrames = {};
     DependencyBoxes = {};
@@ -3165,7 +3165,7 @@ function Library:CreateWindow(...)
 
     local Inner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
-        BorderColor3 = Library.AccentColor;
+        BorderColor3 = Library.OutlineColor;
         BorderMode = Enum.BorderMode.Inset;
         Position = UDim2.new(0, 1, 0, 1);
         Size = UDim2.new(1, -2, 1, -2);
@@ -3295,6 +3295,20 @@ function Library:CreateWindow(...)
             Parent = TabButton;
         });
 
+        -- active tab indicator (thin bottom line)
+        local TabActive = Library:Create('Frame', {
+            BackgroundColor3 = Library.AccentColor;
+            BorderSizePixel = 0;
+            Position = UDim2.new(0, 0, 1, -2);
+            Size = UDim2.new(1, 0, 0, 2);
+            ZIndex = 2;
+            Visible = false;
+            Parent = TabButton;
+        });
+
+        Library:AddToRegistry(TabActive, { BackgroundColor3 = 'AccentColor' });
+        Library:AddToRegistry(TabButtonLabel, { TextColor3 = 'FontColor' });
+
         local Blocker = Library:Create('Frame', {
             BackgroundColor3 = Library.MainColor;
             BorderSizePixel = 0;
@@ -3376,6 +3390,13 @@ function Library:CreateWindow(...)
             TabButton.BackgroundColor3 = Library.MainColor;
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'MainColor';
             TabFrame.Visible = true;
+
+            -- active indicator + label color
+            TabActive.Visible = true;
+            TabButtonLabel.TextColor3 = Library.AccentColor;
+            if Library.RegistryMap[TabButtonLabel] then
+                Library.RegistryMap[TabButtonLabel].Properties.TextColor3 = 'AccentColor';
+            end
         end;
 
         function Tab:HideTab()
@@ -3383,6 +3404,12 @@ function Library:CreateWindow(...)
             TabButton.BackgroundColor3 = Library.BackgroundColor;
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'BackgroundColor';
             TabFrame.Visible = false;
+
+            TabActive.Visible = false;
+            TabButtonLabel.TextColor3 = Library.FontColor;
+            if Library.RegistryMap[TabButtonLabel] then
+                Library.RegistryMap[TabButtonLabel].Properties.TextColor3 = 'FontColor';
+            end
         end;
 
         function Tab:SetLayoutOrder(Position)
