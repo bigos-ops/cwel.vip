@@ -30,29 +30,29 @@ local Library = {
     HudRegistry = {};
 
     FontColor = Color3.fromRGB(255, 255, 255);
-    MainColor = Color3.fromRGB(28, 28, 28);
-    BackgroundColor = Color3.fromRGB(20, 20, 20);
-    AccentColor = Color3.fromRGB(0, 85, 255);
-    OutlineColor = Color3.fromRGB(50, 50, 50);
+    MainColor = Color3.fromRGB(25, 25, 25);
+    BackgroundColor = Color3.fromRGB(18, 18, 18);
+    AccentColor = Color3.fromRGB(0, 120, 255);
+    OutlineColor = Color3.fromRGB(45, 45, 45);
     RiskColor = Color3.fromRGB(255, 50, 50),
 
     Black = Color3.new(0, 0, 0);
-    Font = Enum.Font.Code,
+    Font = Enum.Font.GothamMedium,
 
     -- start of spacing constants
-    Padding = 8;
-    SmallPadding = 4;
-    LargePadding = 12;
+    Padding = 6;
+    SmallPadding = 3;
+    LargePadding = 10;
     -- end of spacing constants
 
     -- start of theme system
     Themes = {
         Dark = {
             FontColor = Color3.fromRGB(255, 255, 255);
-            MainColor = Color3.fromRGB(28, 28, 28);
-            BackgroundColor = Color3.fromRGB(20, 20, 20);
-            AccentColor = Color3.fromRGB(0, 85, 255);
-            OutlineColor = Color3.fromRGB(50, 50, 50);
+            MainColor = Color3.fromRGB(25, 25, 25);
+            BackgroundColor = Color3.fromRGB(18, 18, 18);
+            AccentColor = Color3.fromRGB(0, 120, 255);
+            OutlineColor = Color3.fromRGB(45, 45, 45);
             RiskColor = Color3.fromRGB(255, 50, 50);
         };
         Light = {
@@ -182,7 +182,7 @@ function Library:CreateLabel(Properties, IsHud)
         BackgroundTransparency = 1;
         Font = Library.Font;
         TextColor3 = Library.FontColor;
-        TextSize = 16;
+        TextSize = 13;
         TextStrokeTransparency = 0;
     });
 
@@ -2994,6 +2994,95 @@ do
     Library.KeybindFrame = KeybindOuter;
     Library.KeybindContainer = KeybindContainer;
     Library:MakeDraggable(KeybindOuter);
+
+    -- start of ESP preview
+    local ESPPreviewOuter = Library:Create('Frame', {
+        BorderColor3 = Color3.new(0, 0, 0);
+        Position = UDim2.new(0, 10, 0, 50);
+        Size = UDim2.new(0, 220, 0, 220);
+        Visible = false;
+        ZIndex = 100;
+        Parent = ScreenGui;
+    });
+
+    local ESPPreviewInner = Library:Create('Frame', {
+        BackgroundColor3 = Library.MainColor;
+        BorderColor3 = Library.OutlineColor;
+        BorderMode = Enum.BorderMode.Outline;
+        Size = UDim2.new(1, 0, 1, 0);
+        ZIndex = 101;
+        Parent = ESPPreviewOuter;
+    });
+
+    Library:AddToRegistry(ESPPreviewInner, {
+        BackgroundColor3 = 'MainColor';
+        BorderColor3 = 'OutlineColor';
+    });
+
+    local ESPPreviewLabel = Library:CreateLabel({
+        Position = UDim2.new(0, 5, 0, 2);
+        Size = UDim2.new(1, -4, 0, 16);
+        Text = 'ESP Preview';
+        TextSize = 12;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        ZIndex = 102;
+        Parent = ESPPreviewInner;
+    }, true);
+
+    local ESPPreviewCanvas = Library:Create('Frame', {
+        BackgroundColor3 = Color3.new(0, 0, 0);
+        BorderSizePixel = 0;
+        Position = UDim2.new(0, 4, 0, 22);
+        Size = UDim2.new(1, -8, 1, -28);
+        ClipsDescendants = true;
+        ZIndex = 102;
+        Parent = ESPPreviewInner;
+    });
+
+    Library.ESPPreview = ESPPreviewOuter;
+    Library.ESPPreviewCanvas = ESPPreviewCanvas;
+    Library:MakeDraggable(ESPPreviewOuter);
+
+    function Library:AddESPBox(Position, Size, Color, Label)
+        if not Library.ESPPreview.Visible then
+            return;
+        end;
+
+        local Box = Library:Create('Frame', {
+            BackgroundColor3 = Color;
+            BorderColor3 = Color3.fromRGB(255, 255, 255);
+            BorderMode = Enum.BorderMode.Outline;
+            Position = Position;
+            Size = Size;
+            ZIndex = 103;
+            Parent = Library.ESPPreviewCanvas;
+        });
+
+        if Label then
+            local TextLabel = Library:CreateLabel({
+                Position = UDim2.new(0, 2, 0, -14);
+                Size = UDim2.new(1, -4, 0, 12);
+                Text = Label;
+                TextSize = 10;
+                TextXAlignment = Enum.TextXAlignment.Left;
+                ZIndex = 104;
+                Parent = Box;
+            }, true);
+        end;
+
+        return Box;
+    end;
+
+    function Library:ClearESPPreview()
+        for _, Child in next, Library.ESPPreviewCanvas:GetChildren() do
+            Child:Destroy();
+        end;
+    end;
+
+    function Library:SetESPPreviewVisibility(Bool)
+        Library.ESPPreview.Visible = Bool;
+    end;
+    -- end of ESP preview
 end;
 
 function Library:SetWatermarkVisibility(Bool)
@@ -3199,7 +3288,8 @@ function Library:CreateWindow(...)
     local Outer = Library:Create('Frame', {
         AnchorPoint = Config.AnchorPoint,
         BackgroundColor3 = Color3.new(0, 0, 0);
-        BorderSizePixel = 0;
+        BorderColor3 = Library.OutlineColor;
+        BorderMode = Enum.BorderMode.Outline;
         Position = Config.Position,
         Size = Config.Size,
         Visible = false;
@@ -3207,11 +3297,15 @@ function Library:CreateWindow(...)
         Parent = ScreenGui;
     });
 
+    Library:AddToRegistry(Outer, {
+        BorderColor3 = 'OutlineColor';
+    });
+
     Library:MakeDraggable(Outer, 25);
 
     local Inner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
-        BorderColor3 = Library.AccentColor;
+        BorderColor3 = Color3.new(0, 0, 0);
         BorderMode = Enum.BorderMode.Outline;
         Position = UDim2.new(0, 1, 0, 1);
         Size = UDim2.new(1, -2, 1, -2);
@@ -3221,7 +3315,6 @@ function Library:CreateWindow(...)
 
     Library:AddToRegistry(Inner, {
         BackgroundColor3 = 'MainColor';
-        BorderColor3 = 'AccentColor';
     });
 
     local WindowLabel = Library:CreateLabel({
@@ -3236,6 +3329,7 @@ function Library:CreateWindow(...)
     local MainSectionOuter = Library:Create('Frame', {
         BackgroundColor3 = Library.BackgroundColor;
         BorderColor3 = Library.OutlineColor;
+        BorderMode = Enum.BorderMode.Outline;
         Position = UDim2.new(0, 8, 0, 25);
         Size = UDim2.new(1, -16, 1, -33);
         ZIndex = 1;
@@ -3279,6 +3373,7 @@ function Library:CreateWindow(...)
     local TabContainer = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
         BorderColor3 = Library.OutlineColor;
+        BorderMode = Enum.BorderMode.Outline;
         Position = UDim2.new(0, 8, 0, 30);
         Size = UDim2.new(1, -16, 1, -38);
         ZIndex = 2;
@@ -3306,6 +3401,7 @@ function Library:CreateWindow(...)
         local TabButton = Library:Create('Frame', {
             BackgroundColor3 = Library.BackgroundColor;
             BorderColor3 = Library.OutlineColor;
+            BorderMode = Enum.BorderMode.Outline;
             Size = UDim2.new(0, TabButtonWidth + 8 + 4, 1, 0);
             ZIndex = 1;
             Parent = TabArea;
@@ -3325,17 +3421,16 @@ function Library:CreateWindow(...)
         });
 
         local Blocker = Library:Create('Frame', {
-            BackgroundColor3 = Library.MainColor;
+            BackgroundColor3 = Library.OutlineColor;
             BorderSizePixel = 0;
-            Position = UDim2.new(0, 0, 1, 0);
-            Size = UDim2.new(1, 0, 0, 1);
-            BackgroundTransparency = 1;
+            Position = UDim2.new(0, 0, 1, -2);
+            Size = UDim2.new(1, 0, 0, 2);
             ZIndex = 3;
             Parent = TabButton;
         });
 
         Library:AddToRegistry(Blocker, {
-            BackgroundColor3 = 'MainColor';
+            BackgroundColor3 = 'OutlineColor';
         });
 
         local TabFrame = Library:Create('Frame', {
@@ -3401,6 +3496,7 @@ function Library:CreateWindow(...)
                 Tab:HideTab();
             end;
 
+            Blocker.BackgroundColor3 = Library.AccentColor;
             Blocker.BackgroundTransparency = 0;
             TabButton.BackgroundColor3 = Library.MainColor;
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'MainColor';
@@ -3408,7 +3504,8 @@ function Library:CreateWindow(...)
         end;
 
         function Tab:HideTab()
-            Blocker.BackgroundTransparency = 1;
+            Blocker.BackgroundColor3 = Library.OutlineColor;
+            Blocker.BackgroundTransparency = 0;
             TabButton.BackgroundColor3 = Library.BackgroundColor;
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'BackgroundColor';
             TabFrame.Visible = false;
