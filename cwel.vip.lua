@@ -1,8 +1,3 @@
--- Basic environment validation to give clearer errors when run outside Roblox
-if type(game) ~= 'table' or type(game.GetService) ~= 'function' then
-    error("cwel.vip.lua requires a Roblox environment (missing 'game' global)")
-end
-
 local InputService = game:GetService('UserInputService');
 local TextService = game:GetService('TextService');
 local CoreGui = game:GetService('CoreGui');
@@ -12,7 +7,7 @@ local RunService = game:GetService('RunService')
 local TweenService = game:GetService('TweenService');
 local RenderStepped = RunService.RenderStepped;
 local LocalPlayer = Players.LocalPlayer;
-local Mouse = (LocalPlayer and LocalPlayer.GetMouse and LocalPlayer:GetMouse()) or { X = 0, Y = 0 };
+local Mouse = LocalPlayer:GetMouse();
 
 local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 
@@ -135,26 +130,25 @@ function Library:Create(Class, Properties)
         _Instance[Property] = Value;
     end;
 
-    -- Add subtle rounded corners and strokes to common visible GUI types (avoid ScreenGui, layouts)
-    if typeof(_Instance) == 'Instance' and _Instance:IsA and (
-        _Instance:IsA('Frame') or _Instance:IsA('TextButton') or _Instance:IsA('TextLabel') or
-        _Instance:IsA('ImageLabel') or _Instance:IsA('TextBox') or _Instance:IsA('ScrollingFrame') or
-        _Instance:IsA('ImageButton')
-    ) then
+    -- Add subtle rounded corners and strokes to most gui objects for a modern Linoria-like look
+    if typeof(_Instance) == 'Instance' and _Instance:IsA and _Instance:IsA('GuiObject') then
+        -- UICorner
         if not _Instance:FindFirstChildOfClass('UICorner') then
-            pcall(function()
+            local ok, corner = pcall(function()
                 local c = Instance.new('UICorner')
                 c.CornerRadius = UDim.new(0, 6)
                 c.Parent = _Instance
+                return c
             end)
         end
 
+        -- UIStroke for subtle border (don't override existing strokes)
         if not _Instance:FindFirstChildOfClass('UIStroke') then
             pcall(function()
                 local s = Instance.new('UIStroke')
                 s.Thickness = 1
                 s.Color = Library.OutlineColor
-                s.Transparency = 0.6
+                s.Transparency = 0.75
                 s.Parent = _Instance
             end)
         end
@@ -1474,19 +1468,6 @@ do
                 Parent = Outer;
             });
 
-            -- stronger rounded corners and stroke for buttons
-            pcall(function()
-                local c = Instance.new('UICorner')
-                c.CornerRadius = UDim.new(0, 8)
-                c.Parent = Inner
-
-                local s = Instance.new('UIStroke')
-                s.Thickness = 1.4
-                s.Color = Library.OutlineColor
-                s.Transparency = 0.45
-                s.Parent = Inner
-            end)
-
             local Label = Library:CreateLabel({
                 Size = UDim2.new(1, 0, 1, 0);
                 TextSize = 14;
@@ -2769,18 +2750,6 @@ do
         ZIndex = 202;
         Parent = WatermarkInner;
     });
-    -- give watermark a softer rounded look and subtle border
-    pcall(function()
-        local wc = Instance.new('UICorner')
-        wc.CornerRadius = UDim.new(0, 8)
-        wc.Parent = WatermarkInner
-
-        local ws = Instance.new('UIStroke')
-        ws.Thickness = 1.2
-        ws.Color = Library.AccentColor
-        ws.Transparency = 0.6
-        ws.Parent = WatermarkInner
-    end)
 
     local Gradient = Library:Create('UIGradient', {
         Color = ColorSequence.new({
@@ -2966,7 +2935,7 @@ function Library:Notify(Text, Time)
         BackgroundColor3 = Library.AccentColor;
         BorderSizePixel = 0;
         Position = UDim2.new(0, -1, 0, -1);
-        Size = UDim2.new(0, 6, 1, 2);
+        Size = UDim2.new(0, 3, 1, 2);
         ZIndex = 104;
         Parent = NotifyOuter;
     });
