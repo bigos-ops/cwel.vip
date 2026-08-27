@@ -9,32 +9,16 @@ local RenderStepped = RunService.RenderStepped;
 local LocalPlayer = Players.LocalPlayer;
 local Mouse = LocalPlayer:GetMouse();
 
--- start of GUI protection bootstrap
-local ProtectGui = type(protectgui) == 'function' and protectgui
-    or (syn and type(syn.protect_gui) == 'function' and syn.protect_gui)
-    or function() end;
+local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 
 local ScreenGui = Instance.new('ScreenGui');
 ProtectGui(ScreenGui);
--- end of GUI protection bootstrap
 
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
 ScreenGui.Parent = CoreGui;
 
 local Toggles = {};
 local Options = {};
-
-local function GetPreferredFont()
-    local success, font = pcall(function()
-        return Font.fromName('Tahoma', Enum.FontWeight.Semibold, Enum.FontStyle.Normal)
-    end)
-
-    if success and font then
-        return font
-    end
-
-    return Enum.Font.SourceSansSemibold
-end
 
 getgenv().Toggles = Toggles;
 getgenv().Options = Options;
@@ -46,19 +30,14 @@ local Library = {
     HudRegistry = {};
 
     FontColor = Color3.fromRGB(255, 255, 255);
-    -- Visual style: updated for a modern rounded UI
-    FontColor = Color3.fromRGB(230, 230, 230);
-    MainColor = Color3.fromRGB(34, 37, 43);
-    BackgroundColor = Color3.fromRGB(22, 22, 26);
-    AccentColor = Color3.fromRGB(0, 170, 255); -- Linoria-like blue accent
-    OutlineColor = Color3.fromRGB(18, 18, 20);
-    HoverColor = Color3.fromRGB(46, 49, 55);
-    RiskColor = Color3.fromRGB(239, 83, 80),
+    MainColor = Color3.fromRGB(28, 28, 28);
+    BackgroundColor = Color3.fromRGB(20, 20, 20);
+    AccentColor = Color3.fromRGB(0, 85, 255);
+    OutlineColor = Color3.fromRGB(50, 50, 50);
+    RiskColor = Color3.fromRGB(255, 50, 50),
 
     Black = Color3.new(0, 0, 0);
-    Font = GetPreferredFont(),
-    -- Default corner radius (px) for a rounded modern look. Set to 0 to disable.
-    DefaultRadius = 6,
+    Font = Enum.Font.Code,
 
     OpenedFrames = {};
     DependencyBoxes = {};
@@ -72,18 +51,18 @@ local Hue = 0
 
 table.insert(Library.Signals, RenderStepped:Connect(function(Delta)
     RainbowStep = RainbowStep + Delta
-    -- throttle rainbow updates for performance and smoother transition
-    if RainbowStep >= (1 / 20) then
+
+    if RainbowStep >= (1 / 60) then
         RainbowStep = 0
 
-        Hue = Hue + (1 / 200)
+        Hue = Hue + (1 / 400);
 
         if Hue > 1 then
-            Hue = 0
-        end
+            Hue = 0;
+        end;
 
-        Library.CurrentRainbowHue = Hue
-        Library.CurrentRainbowColor = Color3.fromHSV(Hue, 0.7, 0.95)
+        Library.CurrentRainbowHue = Hue;
+        Library.CurrentRainbowColor = Color3.fromHSV(Hue, 0.8, 1);
     end
 end))
 
@@ -140,34 +119,17 @@ function Library:AttemptSave()
 end;
 
 function Library:Create(Class, Properties)
-    local _Instance = Class
-
-    Properties = Properties or {}
+    local _Instance = Class;
 
     if type(Class) == 'string' then
-        _Instance = Instance.new(Class)
-    end
+        _Instance = Instance.new(Class);
+    end;
 
     for Property, Value in next, Properties do
-        -- support helper flags in Properties without assigning them
-        if Property ~= 'NoRound' and Property ~= 'NoStroke' then
-            _Instance[Property] = Value
-        end
-    end
+        _Instance[Property] = Value;
+    end;
 
-    -- Automatically apply a subtle rounded corner and stroke for a modern look
-    local className = type(Class) == 'string' and Class or (_Instance.ClassName or '')
-
-    if Library.DefaultRadius and Library.DefaultRadius > 0 and (className == 'Frame' or className == 'ImageLabel' or className == 'TextButton' or className == 'TextBox' or className == 'ImageButton' or className == 'ScrollingFrame') and not Properties.NoRound then
-        Library:Create('UICorner', { CornerRadius = UDim.new(0, Library.DefaultRadius), Parent = _Instance })
-    end
-
-    if (className == 'Frame' or className == 'ImageLabel' or className == 'TextButton') and not Properties.NoStroke then
-        -- Subtle outline for Linoria-like appearance
-        Library:Create('UIStroke', { Color = Library.OutlineColor, Thickness = 1, Transparency = 0.6, Parent = _Instance })
-    end
-
-    return _Instance
+    return _Instance;
 end;
 
 function Library:ApplyTextStroke(Inst)
@@ -353,20 +315,6 @@ function Library:GetDarkerColor(Color)
     return Color3.fromHSV(H, S, V / 1.5);
 end;
 Library.AccentColorDark = Library:GetDarkerColor(Library.AccentColor);
-
--- Safely return the vertical pixel height of a GUI child, or 0 for non-gui/UI objects.
-function Library:GetGuiObjectHeight(Obj)
-    if not Obj then return 0 end
-    if not (typeof(Obj) == "Instance" and Obj:IsA('GuiObject')) then return 0 end
-    if not Obj.Visible then return 0 end
-    -- Protect against instances that don't expose Size (eg UICorner, UIStroke)
-    local ok, s = pcall(function() return Obj.Size end)
-    if not ok or not s then return 0 end
-    if s and s.Y and s.Y.Offset then
-        return s.Y.Offset
-    end
-    return 0
-end;
 
 function Library:AddToRegistry(Instance, Properties, IsHud)
     local Idx = #Library.Registry + 1;
@@ -1049,7 +997,7 @@ do
 
         Options[Idx] = ColorPicker;
 
-        return ColorPicker;
+        return self;
     end;
 
     function Funcs:AddKeyPicker(Idx, Info)
@@ -2245,7 +2193,9 @@ do
         end
 
         for _, Element in next, Container:GetChildren() do
-            RelativeOffset = RelativeOffset + Library:GetGuiObjectHeight(Element);
+            if not Element:IsA('UIListLayout') then
+                RelativeOffset = RelativeOffset + Element.Size.Y.Offset;
+            end;
         end;
 
         local DropdownOuter = Library:Create('Frame', {
@@ -2722,29 +2672,9 @@ do
         return Depbox;
     end;
 
-    BaseGroupbox.__index = function(Table, Key)
-        -- Prefer BaseGroupbox methods, fall back to BaseAddons (shared addon methods)
-        if Funcs[Key] ~= nil then
-            return Funcs[Key]
-        end
-
-        if BaseAddons and BaseAddons.__index and BaseAddons.__index[Key] ~= nil then
-            return BaseAddons.__index[Key]
-        end
-
-        return nil
-    end;
-
+    BaseGroupbox.__index = Funcs;
     BaseGroupbox.__namecall = function(Table, Key, ...)
-        local Fn = Funcs[Key]
-
-        if not Fn and BaseAddons and BaseAddons.__index then
-            Fn = BaseAddons.__index[Key]
-        end
-
-        if Fn then
-            return Fn(...)
-        end
+        return Funcs[Key](...);
     end;
 end;
 
@@ -2768,9 +2698,9 @@ do
     local WatermarkOuter = Library:Create('Frame', {
         BorderColor3 = Color3.new(0, 0, 0);
         Position = UDim2.new(0, 100, 0, -25);
-        Size = UDim2.new(0, 240, 0, 26);
+        Size = UDim2.new(0, 213, 0, 20);
         ZIndex = 200;
-        Visible = true;
+        Visible = false;
         Parent = ScreenGui;
     });
 
@@ -3136,14 +3066,10 @@ function Library:CreateWindow(...)
 
         local TabButtonWidth = Library:GetTextBounds(Name, Library.Font, 16);
 
-        -- Increase horizontal padding so each tab has more space
-        local ExtraTabPadding = 20
-
         local TabButton = Library:Create('Frame', {
             BackgroundColor3 = Library.BackgroundColor;
             BorderColor3 = Library.OutlineColor;
-            BorderSizePixel = 0; -- remove default 1px border for sharp look
-            Size = UDim2.new(0, TabButtonWidth + ExtraTabPadding, 1, 0);
+            Size = UDim2.new(0, TabButtonWidth + 8 + 4, 1, 0);
             ZIndex = 1;
             Parent = TabArea;
         });
@@ -3162,32 +3088,18 @@ function Library:CreateWindow(...)
         });
 
         local Blocker = Library:Create('Frame', {
-            BackgroundColor3 = Library.AccentColor;
+            BackgroundColor3 = Library.MainColor;
             BorderSizePixel = 0;
             Position = UDim2.new(0, 0, 1, 0);
-            -- make underline slightly thicker for a cleaner appearance
-            Size = UDim2.new(1, 0, 0, 2);
+            Size = UDim2.new(1, 0, 0, 1);
             BackgroundTransparency = 1;
             ZIndex = 3;
             Parent = TabButton;
         });
 
         Library:AddToRegistry(Blocker, {
-            BackgroundColor3 = 'AccentColor';
+            BackgroundColor3 = 'MainColor';
         });
-
-        -- Hover effect: subtle background change when not active
-        TabButton.MouseEnter:Connect(function()
-            if not TabFrame.Visible then
-                TabButton.BackgroundColor3 = Library.HoverColor;
-            end
-        end)
-
-        TabButton.MouseLeave:Connect(function()
-            if not TabFrame.Visible then
-                TabButton.BackgroundColor3 = Library.BackgroundColor;
-            end
-        end)
 
         local TabFrame = Library:Create('Frame', {
             Name = 'TabFrame',
@@ -3339,20 +3251,10 @@ function Library:CreateWindow(...)
 
             function Groupbox:Resize()
                 local Size = 0;
-                local Layout = Groupbox.Container:FindFirstChildOfClass('UIListLayout');
 
-                if Layout and Layout.AbsoluteContentSize then
-                    Size = Layout.AbsoluteContentSize.Y;
-                else
-                    for _, Element in next, Groupbox.Container:GetChildren() do
-                        if Element:IsA('UIListLayout') then
-                            -- skip layout objects
-                        else
-                            -- only consider GuiObjects that have a Visible property (avoid UIStroke etc)
-                            if Element:IsA('GuiObject') and Element.Visible then
-                                Size = Size + (Element.Size and Element.Size.Y and Element.Size.Y.Offset or 0);
-                            end;
-                        end;
+                for _, Element in next, Groupbox.Container:GetChildren() do
+                    if (not Element:IsA('UIListLayout')) and Element.Visible then
+                        Size = Size + Element.Size.Y.Offset;
                     end;
                 end;
 
@@ -3361,15 +3263,6 @@ function Library:CreateWindow(...)
 
             Groupbox.Container = Container;
             setmetatable(Groupbox, BaseGroupbox);
-
-            -- ensure addon methods (like AddColorPicker) are directly available on groupbox instances
-            if BaseAddons and BaseAddons.__index then
-                for K, V in next, BaseAddons.__index do
-                    if Groupbox[K] == nil then
-                        Groupbox[K] = V
-                    end
-                end
-            end
 
             Groupbox:AddBlank(3);
             Groupbox:Resize();
@@ -3540,19 +3433,10 @@ function Library:CreateWindow(...)
                     end;
 
                     local Size = 0;
-                    local Layout = Container:FindFirstChildOfClass('UIListLayout');
 
-                    if Layout and Layout.AbsoluteContentSize then
-                        Size = Layout.AbsoluteContentSize.Y;
-                    else
-                        for _, Element in next, Tab.Container:GetChildren() do
-                            if Element:IsA('UIListLayout') then
-                                -- skip layout objects
-                            else
-                                if Element:IsA('GuiObject') and Element.Visible then
-                                    Size = Size + (Element.Size and Element.Size.Y and Element.Size.Y.Offset or 0);
-                                end;
-                            end;
+                    for _, Element in next, Tab.Container:GetChildren() do
+                        if (not Element:IsA('UIListLayout')) and Element.Visible then
+                            Size = Size + Element.Size.Y.Offset;
                         end;
                     end;
 
@@ -3570,15 +3454,6 @@ function Library:CreateWindow(...)
                 Tabbox.Tabs[Name] = Tab;
 
                 setmetatable(Tab, BaseGroupbox);
-
-                -- copy addon methods to tab instances as well
-                if BaseAddons and BaseAddons.__index then
-                    for K, V in next, BaseAddons.__index do
-                        if Tab[K] == nil then
-                            Tab[K] = V
-                        end
-                    end
-                end
 
                 Tab:AddBlank(3);
                 Tab:Resize();
@@ -3756,11 +3631,6 @@ end;
 
 Players.PlayerAdded:Connect(OnPlayerChange);
 Players.PlayerRemoving:Connect(OnPlayerChange);
-
--- Backwards compatibility: some callers expect `Library:Load`.
-function Library:Load(...)
-    return Library:CreateWindow(...)
-end
 
 getgenv().Library = Library
 return Library
