@@ -6,8 +6,19 @@ local Players = game:GetService('Players');
 local RunService = game:GetService('RunService')
 local TweenService = game:GetService('TweenService');
 local RenderStepped = RunService.RenderStepped;
-local LocalPlayer = Players.LocalPlayer;
-local Mouse = LocalPlayer:GetMouse();
+-- Safely obtain LocalPlayer and Mouse. In some contexts (server) LocalPlayer is nil,
+-- so wait for PlayerAdded or guard the GetMouse call to avoid runtime errors.
+local LocalPlayer = Players.LocalPlayer
+if not LocalPlayer then
+    LocalPlayer = Players.PlayerAdded and Players.PlayerAdded:Wait()
+end
+
+local Mouse
+if LocalPlayer and type(LocalPlayer.GetMouse) == 'function' then
+    Mouse = LocalPlayer:GetMouse()
+else
+    Mouse = nil
+end
 
 local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 
