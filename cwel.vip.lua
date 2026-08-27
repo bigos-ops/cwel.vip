@@ -3273,8 +3273,13 @@ function Library:CreateWindow(...)
                 local Size = 0;
 
                 for _, Element in next, Groupbox.Container:GetChildren() do
-                    if (not Element:IsA('UIListLayout')) and Element.Visible then
-                        Size = Size + Element.Size.Y.Offset;
+                    if Element:IsA('UIListLayout') then
+                        -- skip layout objects
+                    else
+                        -- only consider GuiObjects that have a Visible property (avoid UIStroke etc)
+                        if Element:IsA('GuiObject') and Element.Visible then
+                            Size = Size + (Element.Size and Element.Size.Y and Element.Size.Y.Offset or 0);
+                        end;
                     end;
                 end;
 
