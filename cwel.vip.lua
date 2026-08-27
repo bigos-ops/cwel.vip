@@ -2213,7 +2213,7 @@ do
         end
 
         for _, Element in next, Container:GetChildren() do
-            if not Element:IsA('UIListLayout') then
+            if Element:IsA('GuiObject') then
                 RelativeOffset = RelativeOffset + Element.Size.Y.Offset;
             end;
         end;
@@ -2385,7 +2385,7 @@ do
             local Buttons = {};
 
             for _, Element in next, Scrolling:GetChildren() do
-                if not Element:IsA('UIListLayout') then
+                if Element:IsA('GuiObject') then
                     Element:Destroy();
                 end;
             end;
@@ -3477,7 +3477,7 @@ function Library:CreateWindow(...)
                     end;
 
                     for _, Button in next, TabboxButtons:GetChildren() do
-                        if not Button:IsA('UIListLayout') then
+                        if Button:IsA('GuiObject') then
                             Button.Size = UDim2.new(1 / TabCount, 0, 1, 0);
                         end;
                     end;
