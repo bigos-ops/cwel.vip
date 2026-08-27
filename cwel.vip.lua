@@ -29,24 +29,16 @@ local Library = {
 
     HudRegistry = {};
 
-    -- Linoria-inspired palette
-    FontColor = Color3.fromRGB(225, 230, 235);
-    MainColor = Color3.fromRGB(20, 20, 22);
-    BackgroundColor = Color3.fromRGB(12, 12, 14);
-    AccentColor = Color3.fromRGB(0, 170, 255);
-    AccentColorLight = Color3.fromRGB(120, 200, 255);
-    OutlineColor = Color3.fromRGB(45, 45, 50);
-    RiskColor = Color3.fromRGB(255, 80, 80),
-    SuccessColor = Color3.fromRGB(100, 200, 120);
-    WarningColor = Color3.fromRGB(255, 180, 80);
+    FontColor = Color3.fromRGB(255, 255, 255);
+    MainColor = Color3.fromRGB(28, 28, 28);
+    BackgroundColor = Color3.fromRGB(20, 20, 20);
+    AccentColor = Color3.fromRGB(0, 85, 255);
+    OutlineColor = Color3.fromRGB(50, 50, 50);
+    RiskColor = Color3.fromRGB(255, 50, 50),
 
     Black = Color3.new(0, 0, 0);
-    Font = Enum.Font.GothamSemibold,
+    Font = Enum.Font.Code,
 
-    -- Corner radius for Linoria-like look
-    CornerRadius = UDim.new(0, 4);
-    LeftAccentWidth = 2;
-    
     OpenedFrames = {};
     DependencyBoxes = {};
 
@@ -143,14 +135,12 @@ end;
 function Library:ApplyTextStroke(Inst)
     Inst.TextStrokeTransparency = 1;
 
-    -- start of modern text stroke with shadow effect
     Library:Create('UIStroke', {
         Color = Color3.new(0, 0, 0);
-        Thickness = 0.5;
+        Thickness = 1;
         LineJoinMode = Enum.LineJoinMode.Miter;
         Parent = Inst;
     });
-    -- end of modern text stroke with shadow effect
 end;
 
 function Library:CreateLabel(Properties, IsHud)
@@ -158,7 +148,7 @@ function Library:CreateLabel(Properties, IsHud)
         BackgroundTransparency = 1;
         Font = Library.Font;
         TextColor3 = Library.FontColor;
-        TextSize = 15;
+        TextSize = 16;
         TextStrokeTransparency = 0;
     });
 
@@ -205,30 +195,17 @@ function Library:AddToolTip(InfoStr, HoverInstance)
         BackgroundColor3 = Library.MainColor,
         BorderColor3 = Library.OutlineColor,
 
-        Size = UDim2.fromOffset(X + 12, Y + 8),
+        Size = UDim2.fromOffset(X + 5, Y + 4),
         ZIndex = 100,
         Parent = Library.ScreenGui,
 
         Visible = false,
     })
 
-    -- start of tooltip styling
-    Library:Create('UICorner', {
-        CornerRadius = Library.CornerRadius;
-        Parent = Tooltip;
-    });
-
-    Library:Create('UIStroke', {
-        Color = Library.OutlineColor;
-        Thickness = 1;
-        Parent = Tooltip;
-    });
-    -- end of tooltip styling
-
     local Label = Library:CreateLabel({
-        Position = UDim2.fromOffset(6, 4),
+        Position = UDim2.fromOffset(3, 1),
         Size = UDim2.fromOffset(X, Y);
-        TextSize = 13;
+        TextSize = 14;
         Text = InfoStr,
         TextColor3 = Library.FontColor,
         TextXAlignment = Enum.TextXAlignment.Left;
@@ -275,15 +252,7 @@ function Library:OnHighlight(HighlightInstance, Instance, Properties, Properties
         local Reg = Library.RegistryMap[Instance];
 
         for Property, ColorIdx in next, Properties do
-            local Value = Library[ColorIdx] or ColorIdx;
-            -- use tween for smoother transition when possible
-            local ok, _ = pcall(function()
-                Library:TweenInstance(Instance, {[Property] = Value}, 0.12)
-            end)
-
-            if not ok then
-                Instance[Property] = Value
-            end
+            Instance[Property] = Library[ColorIdx] or ColorIdx;
 
             if Reg and Reg.Properties[Property] then
                 Reg.Properties[Property] = ColorIdx;
@@ -295,14 +264,7 @@ function Library:OnHighlight(HighlightInstance, Instance, Properties, Properties
         local Reg = Library.RegistryMap[Instance];
 
         for Property, ColorIdx in next, PropertiesDefault do
-            local Value = Library[ColorIdx] or ColorIdx;
-            local ok, _ = pcall(function()
-                Library:TweenInstance(Instance, {[Property] = Value}, 0.12)
-            end)
-
-            if not ok then
-                Instance[Property] = Value
-            end
+            Instance[Property] = Library[ColorIdx] or ColorIdx;
 
             if Reg and Reg.Properties[Property] then
                 Reg.Properties[Property] = ColorIdx;
@@ -353,23 +315,6 @@ function Library:GetDarkerColor(Color)
     return Color3.fromHSV(H, S, V / 1.5);
 end;
 Library.AccentColorDark = Library:GetDarkerColor(Library.AccentColor);
-
-function Library:TweenInstance(Inst, Props, Time)
-    Time = Time or 0.12
-    local Info = TweenInfo.new(Time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local success, tween = pcall(function()
-        return TweenService:Create(Inst, Info, Props)
-    end)
-
-    if success and tween then
-        tween:Play()
-    else
-        -- fallback: apply properties immediately if tween creation fails
-        for k, v in next, Props do
-            Inst[k] = v
-        end
-    end
-end;
 
 function Library:AddToRegistry(Instance, Properties, IsHud)
     local Idx = #Library.Registry + 1;
@@ -472,9 +417,7 @@ do
 
         local ColorPicker = {
             Value = Info.Default;
-            -- `Info.Transparency` is used as a boolean flag to enable transparency UI.
-            -- Ensure `ColorPicker.Transparency` is a numeric value (0..1) for math ops.
-            Transparency = (type(Info.Transparency) == 'number' and Info.Transparency) or 0;
+            Transparency = Info.Transparency or 0;
             Type = 'ColorPicker';
             Title = type(Info.Title) == 'string' and Info.Title or 'Color picker',
             Callback = Info.Callback or function(Color) end;
@@ -494,61 +437,39 @@ do
             BackgroundColor3 = ColorPicker.Value;
             BorderColor3 = Library:GetDarkerColor(ColorPicker.Value);
             BorderMode = Enum.BorderMode.Inset;
-            Size = UDim2.new(0, 32, 0, 18);
+            Size = UDim2.new(0, 28, 0, 14);
             ZIndex = 6;
             Parent = ToggleLabel;
         });
 
-        -- start of color picker display styling
-        Library:Create('UICorner', {
-            CornerRadius = UDim.new(0, 3);
-            Parent = DisplayFrame;
-        });
-
-        Library:Create('UIStroke', {
-            Color = Library.OutlineColor;
-            Thickness = 1;
-            Parent = DisplayFrame;
-        });
-        -- end of color picker display styling
-
         -- Transparency image taken from https://github.com/matas3535/SplixPrivateDrawingLibrary/blob/main/Library.lua cus i'm lazy
         local CheckerFrame = Library:Create('ImageLabel', {
             BorderSizePixel = 0;
-            Size = UDim2.new(1, -2, 1, -2);
-            Position = UDim2.fromOffset(1, 1);
+            Size = UDim2.new(0, 27, 0, 13);
             ZIndex = 5;
             Image = 'http://www.roblox.com/asset/?id=12977615774';
             Visible = not not Info.Transparency;
             Parent = DisplayFrame;
         });
 
+        -- 1/16/23
+        -- Rewrote this to be placed inside the Library ScreenGui
+        -- There was some issue which caused RelativeOffset to be way off
+        -- Thus the color picker would never show
+
         local PickerFrameOuter = Library:Create('Frame', {
             Name = 'Color';
             BackgroundColor3 = Color3.new(1, 1, 1);
             BorderColor3 = Color3.new(0, 0, 0);
-            Position = UDim2.fromOffset(DisplayFrame.AbsolutePosition.X, DisplayFrame.AbsolutePosition.Y + 22),
-            Size = UDim2.fromOffset(240, Info.Transparency and 285 or 267);
+            Position = UDim2.fromOffset(DisplayFrame.AbsolutePosition.X, DisplayFrame.AbsolutePosition.Y + 18),
+            Size = UDim2.fromOffset(230, Info.Transparency and 271 or 253);
             Visible = false;
             ZIndex = 15;
             Parent = ScreenGui,
         });
 
-        -- start of picker frame outer styling
-        Library:Create('UICorner', {
-            CornerRadius = Library.CornerRadius;
-            Parent = PickerFrameOuter;
-        });
-
-        Library:Create('UIStroke', {
-            Color = Color3.fromRGB(40, 40, 50);
-            Thickness = 1;
-            Parent = PickerFrameOuter;
-        });
-        -- end of picker frame outer styling
-
         DisplayFrame:GetPropertyChangedSignal('AbsolutePosition'):Connect(function()
-            PickerFrameOuter.Position = UDim2.fromOffset(DisplayFrame.AbsolutePosition.X, DisplayFrame.AbsolutePosition.Y + 22);
+            PickerFrameOuter.Position = UDim2.fromOffset(DisplayFrame.AbsolutePosition.X, DisplayFrame.AbsolutePosition.Y + 18);
         end)
 
         local PickerFrameInner = Library:Create('Frame', {
@@ -560,42 +481,21 @@ do
             Parent = PickerFrameOuter;
         });
 
-        -- start of inner frame styling  
-        Library:Create('UICorner', {
-            CornerRadius = UDim.new(0, 5);
-            Parent = PickerFrameInner;
-        });
-        -- end of inner frame styling
-
         local Highlight = Library:Create('Frame', {
             BackgroundColor3 = Library.AccentColor;
             BorderSizePixel = 0;
-            Size = UDim2.new(1, 0, 0, 3);
+            Size = UDim2.new(1, 0, 0, 2);
             ZIndex = 17;
             Parent = PickerFrameInner;
         });
-
-        -- start of highlight bar styling
-        Library:Create('UICorner', {
-            CornerRadius = UDim.new(0, 2);
-            Parent = Highlight;
-        });
-        -- end of highlight bar styling
 
         local SatVibMapOuter = Library:Create('Frame', {
             BorderColor3 = Color3.new(0, 0, 0);
-            Position = UDim2.new(0, 6, 0, 30);
-            Size = UDim2.new(0, 210, 0, 210);
+            Position = UDim2.new(0, 4, 0, 25);
+            Size = UDim2.new(0, 200, 0, 200);
             ZIndex = 17;
             Parent = PickerFrameInner;
         });
-
-        -- start of satvib outer styling
-        Library:Create('UICorner', {
-            CornerRadius = UDim.new(0, 4);
-            Parent = SatVibMapOuter;
-        });
-        -- end of satvib outer styling
 
         local SatVibMapInner = Library:Create('Frame', {
             BackgroundColor3 = Library.BackgroundColor;
@@ -605,13 +505,6 @@ do
             ZIndex = 18;
             Parent = SatVibMapOuter;
         });
-
-        -- start of satvib inner styling
-        Library:Create('UICorner', {
-            CornerRadius = UDim.new(0, 3);
-            Parent = SatVibMapInner;
-        });
-        -- end of satvib inner styling
 
         local SatVibMap = Library:Create('ImageLabel', {
             BorderSizePixel = 0;
@@ -642,18 +535,11 @@ do
 
         local HueSelectorOuter = Library:Create('Frame', {
             BorderColor3 = Color3.new(0, 0, 0);
-            Position = UDim2.new(0, 222, 0, 30);
-            Size = UDim2.new(0, 12, 0, 210);
+            Position = UDim2.new(0, 208, 0, 25);
+            Size = UDim2.new(0, 15, 0, 200);
             ZIndex = 17;
             Parent = PickerFrameInner;
         });
-
-        -- start of hue selector outer styling
-        Library:Create('UICorner', {
-            CornerRadius = UDim.new(0, 2);
-            Parent = HueSelectorOuter;
-        });
-        -- end of hue selector outer styling
 
         local HueSelectorInner = Library:Create('Frame', {
             BackgroundColor3 = Color3.new(1, 1, 1);
@@ -662,13 +548,6 @@ do
             ZIndex = 18;
             Parent = HueSelectorOuter;
         });
-
-        -- start of hue selector inner styling
-        Library:Create('UICorner', {
-            CornerRadius = UDim.new(0, 2);
-            Parent = HueSelectorInner;
-        });
-        -- end of hue selector inner styling
 
         local HueCursor = Library:Create('Frame', { 
             BackgroundColor3 = Color3.new(1, 1, 1);
@@ -681,18 +560,11 @@ do
 
         local HueBoxOuter = Library:Create('Frame', {
             BorderColor3 = Color3.new(0, 0, 0);
-            Position = UDim2.fromOffset(6, 248),
-            Size = UDim2.new(0.5, -8, 0, 22),
+            Position = UDim2.fromOffset(4, 228),
+            Size = UDim2.new(0.5, -6, 0, 20),
             ZIndex = 18,
             Parent = PickerFrameInner;
         });
-
-        -- start of hex box outer styling
-        Library:Create('UICorner', {
-            CornerRadius = UDim.new(0, 4);
-            Parent = HueBoxOuter;
-        });
-        -- end of hex box outer styling
 
         local HueBoxInner = Library:Create('Frame', {
             BackgroundColor3 = Library.MainColor;
@@ -702,13 +574,6 @@ do
             ZIndex = 18,
             Parent = HueBoxOuter;
         });
-
-        -- start of hex box inner styling
-        Library:Create('UICorner', {
-            CornerRadius = UDim.new(0, 3);
-            Parent = HueBoxInner;
-        });
-        -- end of hex box inner styling
 
         Library:Create('UIGradient', {
             Color = ColorSequence.new({
@@ -754,18 +619,11 @@ do
         if Info.Transparency then 
             TransparencyBoxOuter = Library:Create('Frame', {
                 BorderColor3 = Color3.new(0, 0, 0);
-                Position = UDim2.fromOffset(6, 275);
-                Size = UDim2.new(1, -12, 0, 18);
+                Position = UDim2.fromOffset(4, 251);
+                Size = UDim2.new(1, -8, 0, 15);
                 ZIndex = 19;
                 Parent = PickerFrameInner;
             });
-
-            -- start of transparency box styling
-            Library:Create('UICorner', {
-                CornerRadius = UDim.new(0, 4);
-                Parent = TransparencyBoxOuter;
-            });
-            -- end of transparency box styling
 
             TransparencyBoxInner = Library:Create('Frame', {
                 BackgroundColor3 = ColorPicker.Value;
@@ -775,13 +633,6 @@ do
                 ZIndex = 19;
                 Parent = TransparencyBoxOuter;
             });
-
-            -- start of transparency inner styling
-            Library:Create('UICorner', {
-                CornerRadius = UDim.new(0, 3);
-                Parent = TransparencyBoxInner;
-            });
-            -- end of transparency inner styling
 
             Library:AddToRegistry(TransparencyBoxInner, { BorderColor3 = 'OutlineColor' });
 
@@ -826,13 +677,6 @@ do
                 Parent = ScreenGui
             })
 
-            -- start of context menu styling
-            Library:Create('UICorner', {
-                CornerRadius = Library.CornerRadius;
-                Parent = ContextMenu.Container;
-            });
-            -- end of context menu styling
-
             ContextMenu.Inner = Library:Create('Frame', {
                 BackgroundColor3 = Library.BackgroundColor;
                 BorderColor3 = Library.OutlineColor;
@@ -841,13 +685,6 @@ do
                 ZIndex = 15;
                 Parent = ContextMenu.Container;
             });
-
-            -- start of context inner styling
-            Library:Create('UICorner', {
-                CornerRadius = UDim.new(0, 5);
-                Parent = ContextMenu.Inner;
-            });
-            -- end of context inner styling
 
             Library:Create('UIListLayout', {
                 Name = 'Layout',
@@ -1534,7 +1371,7 @@ do
             TextLabel.Size = UDim2.new(1, -4, 0, Y)
         else
             Library:Create('UIListLayout', {
-                Padding = UDim.new(0, 6);
+                Padding = UDim.new(0, 4);
                 FillDirection = Enum.FillDirection.Horizontal;
                 HorizontalAlignment = Enum.HorizontalAlignment.Right;
                 SortOrder = Enum.SortOrder.LayoutOrder;
@@ -1593,16 +1430,9 @@ do
             local Outer = Library:Create('Frame', {
                 BackgroundColor3 = Color3.new(0, 0, 0);
                 BorderColor3 = Color3.new(0, 0, 0);
-                Size = UDim2.new(1, -4, 0, 24);
+                Size = UDim2.new(1, -4, 0, 20);
                 ZIndex = 5;
             });
-
-            -- start of button outer styling
-            Library:Create('UICorner', {
-                CornerRadius = Library.CornerRadius;
-                Parent = Outer;
-            });
-            -- end of button outer styling
 
             local Inner = Library:Create('Frame', {
                 BackgroundColor3 = Library.MainColor;
@@ -1612,13 +1442,6 @@ do
                 ZIndex = 6;
                 Parent = Outer;
             });
-
-            -- start of button inner styling
-            Library:Create('UICorner', {
-                CornerRadius = UDim.new(0, 5);
-                Parent = Inner;
-            });
-            -- end of button inner styling
 
             local Label = Library:CreateLabel({
                 Size = UDim2.new(1, 0, 1, 0);
@@ -1630,8 +1453,8 @@ do
 
             Library:Create('UIGradient', {
                 Color = ColorSequence.new({
-                    ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 60)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 30, 40))
+                    ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(212, 212, 212))
                 });
                 Rotation = 90;
                 Parent = Inner;
@@ -2009,17 +1832,10 @@ do
         local ToggleOuter = Library:Create('Frame', {
             BackgroundColor3 = Color3.new(0, 0, 0);
             BorderColor3 = Color3.new(0, 0, 0);
-            Size = UDim2.new(0, 16, 0, 16);
+            Size = UDim2.new(0, 13, 0, 13);
             ZIndex = 5;
             Parent = Container;
         });
-
-        -- start of toggle outer styling
-        Library:Create('UICorner', {
-            CornerRadius = UDim.new(0, 3);
-            Parent = ToggleOuter;
-        });
-        -- end of toggle outer styling
 
         Library:AddToRegistry(ToggleOuter, {
             BorderColor3 = 'Black';
@@ -2033,13 +1849,6 @@ do
             ZIndex = 6;
             Parent = ToggleOuter;
         });
-
-        -- start of toggle inner styling
-        Library:Create('UICorner', {
-            CornerRadius = UDim.new(0, 2);
-            Parent = ToggleInner;
-        });
-        -- end of toggle inner styling
 
         Library:AddToRegistry(ToggleInner, {
             BackgroundColor3 = 'MainColor';
@@ -2086,10 +1895,10 @@ do
 
         function Toggle:Display()
             ToggleInner.BackgroundColor3 = Toggle.Value and Library.AccentColor or Library.MainColor;
-            ToggleInner.BorderColor3 = Toggle.Value and Library.AccentColorLight or Library.OutlineColor;
+            ToggleInner.BorderColor3 = Toggle.Value and Library.AccentColorDark or Library.OutlineColor;
 
             Library.RegistryMap[ToggleInner].Properties.BackgroundColor3 = Toggle.Value and 'AccentColor' or 'MainColor';
-            Library.RegistryMap[ToggleInner].Properties.BorderColor3 = Toggle.Value and 'AccentColorLight' or 'OutlineColor';
+            Library.RegistryMap[ToggleInner].Properties.BorderColor3 = Toggle.Value and 'AccentColorDark' or 'OutlineColor';
         end;
 
         function Toggle:OnChanged(Func)
@@ -3165,25 +2974,13 @@ function Library:CreateWindow(...)
 
     local Inner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
-        BorderColor3 = Library.OutlineColor;
+        BorderColor3 = Library.AccentColor;
         BorderMode = Enum.BorderMode.Inset;
         Position = UDim2.new(0, 1, 0, 1);
         Size = UDim2.new(1, -2, 1, -2);
         ZIndex = 1;
         Parent = Outer;
     });
-
-    -- left accent bar (Linoria style)
-    local LeftAccent = Library:Create('Frame', {
-        BackgroundColor3 = Library.AccentColor;
-        BorderSizePixel = 0;
-        Position = UDim2.new(0, 0, 0, 0);
-        Size = UDim2.new(0, Library.LeftAccentWidth, 1, 0);
-        ZIndex = 5;
-        Parent = Inner;
-    });
-
-    Library:Create('UICorner', { CornerRadius = UDim.new(0, 3); Parent = LeftAccent; });
 
     Library:AddToRegistry(Inner, {
         BackgroundColor3 = 'MainColor';
@@ -3192,8 +2989,7 @@ function Library:CreateWindow(...)
 
     local WindowLabel = Library:CreateLabel({
         Position = UDim2.new(0, 7, 0, 0);
-        Size = UDim2.new(0, 0, 0, 26);
-        TextSize = 17;
+        Size = UDim2.new(0, 0, 0, 25);
         Text = Config.Title or '';
         TextXAlignment = Enum.TextXAlignment.Left;
         ZIndex = 1;
@@ -3278,8 +3074,6 @@ function Library:CreateWindow(...)
             Parent = TabArea;
         });
 
-        -- tab button rounded corner + registry
-        Library:Create('UICorner', { CornerRadius = UDim.new(0, 4); Parent = TabButton; });
         Library:AddToRegistry(TabButton, {
             BackgroundColor3 = 'BackgroundColor';
             BorderColor3 = 'OutlineColor';
@@ -3289,25 +3083,9 @@ function Library:CreateWindow(...)
             Position = UDim2.new(0, 0, 0, 0);
             Size = UDim2.new(1, 0, 1, -1);
             Text = Name;
-            TextSize = 14;
-            TextXAlignment = Enum.TextXAlignment.Center;
             ZIndex = 1;
             Parent = TabButton;
         });
-
-        -- active tab indicator (thin bottom line)
-        local TabActive = Library:Create('Frame', {
-            BackgroundColor3 = Library.AccentColor;
-            BorderSizePixel = 0;
-            Position = UDim2.new(0, 0, 1, -2);
-            Size = UDim2.new(1, 0, 0, 2);
-            ZIndex = 2;
-            Visible = false;
-            Parent = TabButton;
-        });
-
-        Library:AddToRegistry(TabActive, { BackgroundColor3 = 'AccentColor' });
-        Library:AddToRegistry(TabButtonLabel, { TextColor3 = 'FontColor' });
 
         local Blocker = Library:Create('Frame', {
             BackgroundColor3 = Library.MainColor;
@@ -3390,13 +3168,6 @@ function Library:CreateWindow(...)
             TabButton.BackgroundColor3 = Library.MainColor;
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'MainColor';
             TabFrame.Visible = true;
-
-            -- active indicator + label color
-            TabActive.Visible = true;
-            TabButtonLabel.TextColor3 = Library.AccentColor;
-            if Library.RegistryMap[TabButtonLabel] then
-                Library.RegistryMap[TabButtonLabel].Properties.TextColor3 = 'AccentColor';
-            end
         end;
 
         function Tab:HideTab()
@@ -3404,12 +3175,6 @@ function Library:CreateWindow(...)
             TabButton.BackgroundColor3 = Library.BackgroundColor;
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'BackgroundColor';
             TabFrame.Visible = false;
-
-            TabActive.Visible = false;
-            TabButtonLabel.TextColor3 = Library.FontColor;
-            if Library.RegistryMap[TabButtonLabel] then
-                Library.RegistryMap[TabButtonLabel].Properties.TextColor3 = 'FontColor';
-            end
         end;
 
         function Tab:SetLayoutOrder(Position)
