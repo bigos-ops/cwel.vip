@@ -3685,109 +3685,153 @@ function Library:CreateWindow(...)
     Window.Holder = Outer;
 
     -- start of library esp preview
+    -- NOTE: ScreenGui uses ZIndexBehavior.Global, so every child must have a
+    -- HIGHER ZIndex than its parent or the parent paints over its own contents.
+    local PREVIEW_Z = 900;
+
     local PreviewGui = Library:Create('Frame', {
         Name = 'ESPPreview';
-        AnchorPoint = Vector2.new(0, 0);
+        AnchorPoint = Vector2.new(0.5, 0.5);
         BackgroundColor3 = Color3.new(0, 0, 0);
         BorderSizePixel = 0;
-        Position = UDim2.fromOffset(8, 8);
+        Position = UDim2.fromScale(0.5, 0.5);
         Size = UDim2.fromOffset(220, 330);
         Visible = true;
-        ZIndex = 900;
+        ZIndex = PREVIEW_Z;
         Parent = ScreenGui;
     });
 
     local PreviewInner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
         BorderColor3 = Library.AccentColor;
+        BorderMode = Enum.BorderMode.Inset;
         Position = UDim2.fromOffset(1, 1);
         Size = UDim2.new(1, -2, 1, -2);
-        ZIndex = 101;
+        ZIndex = PREVIEW_Z + 1;
         Parent = PreviewGui;
     });
 
-    Library:CreateLabel({
-        Position = UDim2.fromOffset(8, 4);
-        Size = UDim2.new(1, -16, 0, 20);
+    Library:AddToRegistry(PreviewInner, {
+        BackgroundColor3 = 'MainColor';
+        BorderColor3 = 'AccentColor';
+    });
+
+    local PreviewTitle = Library:CreateLabel({
+        Position = UDim2.fromOffset(7, 3);
+        Size = UDim2.new(1, -14, 0, 18);
         Text = 'ESP Preview';
         TextSize = 15;
         TextXAlignment = Enum.TextXAlignment.Left;
-        ZIndex = 102;
+        ZIndex = PREVIEW_Z + 2;
         Parent = PreviewInner;
     });
 
     local PreviewRule = Library:Create('Frame', {
         BackgroundColor3 = Library.AccentColor;
         BorderSizePixel = 0;
-        Position = UDim2.fromOffset(8, 26);
-        Size = UDim2.new(1, -16, 0, 1);
-        ZIndex = 102;
+        Position = UDim2.fromOffset(7, 22);
+        Size = UDim2.new(1, -14, 0, 1);
+        ZIndex = PREVIEW_Z + 2;
         Parent = PreviewInner;
+    });
+
+    Library:AddToRegistry(PreviewRule, {
+        BackgroundColor3 = 'AccentColor';
+    });
+
+    -- Linoria-style sunken panel: outline frame + darker background inside.
+    local PreviewCanvasOuter = Library:Create('Frame', {
+        BackgroundColor3 = Library.BackgroundColor;
+        BorderColor3 = Library.OutlineColor;
+        BorderMode = Enum.BorderMode.Inset;
+        Position = UDim2.fromOffset(7, 28);
+        Size = UDim2.new(1, -14, 1, -35);
+        ZIndex = PREVIEW_Z + 2;
+        Parent = PreviewInner;
+    });
+
+    Library:AddToRegistry(PreviewCanvasOuter, {
+        BackgroundColor3 = 'BackgroundColor';
+        BorderColor3 = 'OutlineColor';
     });
 
     local PreviewCanvas = Library:Create('Frame', {
-        BackgroundColor3 = Color3.fromRGB(24, 24, 26);
-        BorderColor3 = Library.OutlineColor;
-        Position = UDim2.fromOffset(8, 35);
-        Size = UDim2.new(1, -16, 1, -43);
-        ZIndex = 101;
-        Parent = PreviewInner;
+        BackgroundColor3 = Library.BackgroundColor;
+        BorderSizePixel = 0;
+        Position = UDim2.fromOffset(1, 1);
+        Size = UDim2.new(1, -2, 1, -2);
+        ZIndex = PREVIEW_Z + 3;
+        Parent = PreviewCanvasOuter;
     });
 
-    local PreviewBox = Library:Create('Frame', {
-        BackgroundTransparency = 1;
-        BorderColor3 = Library.AccentColor;
-        Position = UDim2.fromOffset(51, 47);
-        Size = UDim2.fromOffset(116, 218);
-        ZIndex = 102;
-        Parent = PreviewCanvas;
+    Library:AddToRegistry(PreviewCanvas, {
+        BackgroundColor3 = 'BackgroundColor';
     });
 
+    -- Blocky rig: head, torso, two arms, two legs.
     local PreviewParts = {};
     local function AddPreviewPart(Name, Position, Size)
         PreviewParts[Name] = Library:Create('Frame', {
-            BackgroundColor3 = Color3.fromRGB(178, 178, 184);
-            BorderColor3 = Color3.new(0, 0, 0);
+            Name = Name;
+            BackgroundColor3 = Color3.fromRGB(150, 150, 156);
+            BorderColor3 = Color3.fromRGB(12, 12, 14);
+            BorderSizePixel = 1;
             Position = Position;
             Size = Size;
-            ZIndex = 103;
+            ZIndex = PREVIEW_Z + 4;
             Parent = PreviewCanvas;
         });
     end;
 
-    AddPreviewPart('Head', UDim2.fromOffset(91, 55), UDim2.fromOffset(36, 30));
-    AddPreviewPart('Torso', UDim2.fromOffset(82, 88), UDim2.fromOffset(54, 78));
-    AddPreviewPart('LeftArm', UDim2.fromOffset(59, 91), UDim2.fromOffset(20, 72));
-    AddPreviewPart('RightArm', UDim2.fromOffset(139, 91), UDim2.fromOffset(20, 72));
-    AddPreviewPart('LeftLeg', UDim2.fromOffset(83, 169), UDim2.fromOffset(23, 88));
-    AddPreviewPart('RightLeg', UDim2.fromOffset(112, 169), UDim2.fromOffset(23, 88));
+    AddPreviewPart('Head', UDim2.fromOffset(84, 46), UDim2.fromOffset(34, 28));
+    AddPreviewPart('Torso', UDim2.fromOffset(76, 78), UDim2.fromOffset(50, 74));
+    AddPreviewPart('LeftArm', UDim2.fromOffset(54, 80), UDim2.fromOffset(18, 68));
+    AddPreviewPart('RightArm', UDim2.fromOffset(130, 80), UDim2.fromOffset(18, 68));
+    AddPreviewPart('LeftLeg', UDim2.fromOffset(78, 156), UDim2.fromOffset(21, 80));
+    AddPreviewPart('RightLeg', UDim2.fromOffset(103, 156), UDim2.fromOffset(21, 80));
+
+    -- ESP overlay: box, name, distance, health bar.
+    local PreviewBox = Library:Create('Frame', {
+        BackgroundTransparency = 1;
+        BorderColor3 = Library.AccentColor;
+        BorderSizePixel = 1;
+        Position = UDim2.fromOffset(48, 42);
+        Size = UDim2.fromOffset(106, 200);
+        ZIndex = PREVIEW_Z + 5;
+        Parent = PreviewCanvas;
+    });
+
+    Library:AddToRegistry(PreviewBox, {
+        BorderColor3 = 'AccentColor';
+    });
 
     local PreviewName = Library:CreateLabel({
-        Position = UDim2.fromOffset(48, 29);
-        Size = UDim2.fromOffset(122, 18);
+        Position = UDim2.fromOffset(28, 24);
+        Size = UDim2.fromOffset(146, 16);
         Text = 'ExamplePlayer';
         TextColor3 = Library.AccentColor;
         TextSize = 14;
-        ZIndex = 104;
+        ZIndex = PREVIEW_Z + 6;
         Parent = PreviewCanvas;
     });
 
     local PreviewDistance = Library:CreateLabel({
-        Position = UDim2.fromOffset(48, 249);
-        Size = UDim2.fromOffset(122, 18);
+        Position = UDim2.fromOffset(28, 244);
+        Size = UDim2.fromOffset(146, 16);
         Text = '[ 42m ]';
         TextColor3 = Color3.fromRGB(190, 190, 190);
         TextSize = 13;
-        ZIndex = 104;
+        ZIndex = PREVIEW_Z + 6;
         Parent = PreviewCanvas;
     });
 
     local PreviewHealth = Library:Create('Frame', {
-        BackgroundColor3 = Color3.fromRGB(38, 38, 40);
-        BorderColor3 = Color3.new(0, 0, 0);
-        Position = UDim2.fromOffset(171, 88);
-        Size = UDim2.fromOffset(5, 79);
-        ZIndex = 103;
+        BackgroundColor3 = Color3.fromRGB(20, 20, 22);
+        BorderColor3 = Color3.fromRGB(12, 12, 14);
+        BorderSizePixel = 1;
+        Position = UDim2.fromOffset(41, 42);
+        Size = UDim2.fromOffset(4, 200);
+        ZIndex = PREVIEW_Z + 5;
         Parent = PreviewCanvas;
     });
 
@@ -3797,7 +3841,7 @@ function Library:CreateWindow(...)
         AnchorPoint = Vector2.new(0, 1);
         Position = UDim2.fromScale(0, 1);
         Size = UDim2.fromScale(1, 0.78);
-        ZIndex = 104;
+        ZIndex = PREVIEW_Z + 6;
         Parent = PreviewHealth;
     });
 
@@ -3826,10 +3870,6 @@ function Library:CreateWindow(...)
     end;
 
     Window.ESPPreview = Preview;
-
-    -- Center the preview on screen.
-    PreviewGui.AnchorPoint = Vector2.new(0.5, 0.5);
-    PreviewGui.Position = UDim2.fromScale(0.5, 0.5);
 
     local function PlacePreview()
         PreviewGui.Visible = Preview.Visible and Outer.Visible;
