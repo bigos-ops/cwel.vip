@@ -1,4 +1,4 @@
-local InputService = game:GetService('UserInputService');
+\local InputService = game:GetService('UserInputService');
 local TextService = game:GetService('TextService');
 local CoreGui = game:GetService('CoreGui');
 local Teams = game:GetService('Teams');
@@ -3309,6 +3309,15 @@ function Library:CreateWindow(...)
             Groupbox.Container = Container;
             setmetatable(Groupbox, BaseGroupbox);
 
+            -- ensure addon methods (like AddColorPicker) are directly available on groupbox instances
+            if BaseAddons and BaseAddons.__index then
+                for K, V in next, BaseAddons.__index do
+                    if Groupbox[K] == nil then
+                        Groupbox[K] = V
+                    end
+                end
+            end
+
             Groupbox:AddBlank(3);
             Groupbox:Resize();
 
@@ -3503,6 +3512,15 @@ function Library:CreateWindow(...)
                 Tabbox.Tabs[Name] = Tab;
 
                 setmetatable(Tab, BaseGroupbox);
+
+                -- copy addon methods to tab instances as well
+                if BaseAddons and BaseAddons.__index then
+                    for K, V in next, BaseAddons.__index do
+                        if Tab[K] == nil then
+                            Tab[K] = V
+                        end
+                    end
+                end
 
                 Tab:AddBlank(3);
                 Tab:Resize();
