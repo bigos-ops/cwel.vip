@@ -3683,6 +3683,154 @@ function Library:CreateWindow(...)
 
     Window.Holder = Outer;
 
+    -- start of esp preview panel
+    local PreviewOuter = Library:Create('Frame', {
+        BackgroundColor3 = Color3.new(0, 0, 0);
+        BorderSizePixel = 0;
+        Size = UDim2.fromOffset(220, 330);
+        Visible = false;
+        ZIndex = 50;
+        Parent = ScreenGui;
+    });
+
+    local PreviewInner = Library:Create('Frame', {
+        BackgroundColor3 = Library.MainColor;
+        BorderColor3 = Library.AccentColor;
+        BorderMode = Enum.BorderMode.Inset;
+        Position = UDim2.fromOffset(1, 1);
+        Size = UDim2.new(1, -2, 1, -2);
+        ZIndex = 51;
+        Parent = PreviewOuter;
+    });
+
+    local PreviewTitle = Library:CreateLabel({
+        Position = UDim2.fromOffset(8, 4);
+        Size = UDim2.new(1, -16, 0, 20);
+        Text = 'ESP Preview';
+        TextSize = 15;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        ZIndex = 52;
+        Parent = PreviewInner;
+    });
+
+    local PreviewRule = Library:Create('Frame', {
+        BackgroundColor3 = Library.AccentColor;
+        BorderSizePixel = 0;
+        Position = UDim2.fromOffset(8, 26);
+        Size = UDim2.new(1, -16, 0, 1);
+        ZIndex = 52;
+        Parent = PreviewInner;
+    });
+
+    local PreviewCanvas = Library:Create('Frame', {
+        BackgroundColor3 = Color3.fromRGB(24, 24, 26);
+        BorderColor3 = Library.OutlineColor;
+        Position = UDim2.fromOffset(8, 35);
+        Size = UDim2.new(1, -16, 1, -43);
+        ZIndex = 51;
+        Parent = PreviewInner;
+    });
+
+    local PreviewBox = Library:Create('Frame', {
+        BackgroundTransparency = 1;
+        BorderColor3 = Library.AccentColor;
+        Position = UDim2.fromOffset(51, 47);
+        Size = UDim2.fromOffset(116, 218);
+        ZIndex = 52;
+        Parent = PreviewCanvas;
+    });
+
+    local BodyParts = {};
+    local BodyColor = Color3.fromRGB(178, 178, 184);
+
+    local function AddPreviewPart(Name, Position, Size)
+        local Part = Library:Create('Frame', {
+            BackgroundColor3 = BodyColor;
+            BorderColor3 = Color3.fromRGB(10, 10, 10);
+            Position = Position;
+            Size = Size;
+            ZIndex = 53;
+            Parent = PreviewCanvas;
+        });
+
+        BodyParts[Name] = Part;
+    end;
+
+    AddPreviewPart('Head', UDim2.fromOffset(91, 55), UDim2.fromOffset(36, 30));
+    AddPreviewPart('Torso', UDim2.fromOffset(82, 88), UDim2.fromOffset(54, 78));
+    AddPreviewPart('LeftArm', UDim2.fromOffset(59, 91), UDim2.fromOffset(20, 72));
+    AddPreviewPart('RightArm', UDim2.fromOffset(139, 91), UDim2.fromOffset(20, 72));
+    AddPreviewPart('LeftLeg', UDim2.fromOffset(83, 169), UDim2.fromOffset(23, 88));
+    AddPreviewPart('RightLeg', UDim2.fromOffset(112, 169), UDim2.fromOffset(23, 88));
+
+    local PreviewName = Library:CreateLabel({
+        Position = UDim2.fromOffset(48, 29);
+        Size = UDim2.fromOffset(122, 18);
+        Text = 'ExamplePlayer';
+        TextColor3 = Library.AccentColor;
+        TextSize = 14;
+        ZIndex = 54;
+        Parent = PreviewCanvas;
+    });
+
+    local PreviewDistance = Library:CreateLabel({
+        Position = UDim2.fromOffset(48, 249);
+        Size = UDim2.fromOffset(122, 18);
+        Text = '[ 42m ]';
+        TextColor3 = Color3.fromRGB(190, 190, 190);
+        TextSize = 13;
+        ZIndex = 54;
+        Parent = PreviewCanvas;
+    });
+
+    local HealthBack = Library:Create('Frame', {
+        BackgroundColor3 = Color3.fromRGB(38, 38, 40);
+        BorderColor3 = Color3.fromRGB(10, 10, 10);
+        Position = UDim2.fromOffset(171, 88);
+        Size = UDim2.fromOffset(5, 79);
+        ZIndex = 53;
+        Parent = PreviewCanvas;
+    });
+
+    Library:Create('Frame', {
+        BackgroundColor3 = Color3.fromRGB(93, 177, 105);
+        BorderSizePixel = 0;
+        AnchorPoint = Vector2.new(0, 1);
+        Position = UDim2.fromScale(0, 1);
+        Size = UDim2.fromScale(1, 0.78);
+        ZIndex = 54;
+        Parent = HealthBack;
+    });
+
+    local PreviewFooter = Library:CreateLabel({
+        Position = UDim2.new(0, 8, 1, -24);
+        Size = UDim2.new(1, -16, 0, 16);
+        Text = 'visual check  /  active';
+        TextColor3 = Color3.fromRGB(160, 160, 165);
+        TextSize = 12;
+        ZIndex = 54;
+        Parent = PreviewCanvas;
+    });
+
+    local function PositionPreview()
+        local WindowPosition = Outer.AbsolutePosition;
+        local WindowSize = Outer.AbsoluteSize;
+
+        PreviewOuter.Position = UDim2.fromOffset(WindowPosition.X + WindowSize.X + 10, WindowPosition.Y + 25);
+        PreviewOuter.Visible = Outer.Visible;
+    end;
+
+    Outer:GetPropertyChangedSignal('AbsolutePosition'):Connect(PositionPreview);
+    Outer:GetPropertyChangedSignal('AbsoluteSize'):Connect(PositionPreview);
+    Outer:GetPropertyChangedSignal('Visible'):Connect(PositionPreview);
+
+    Library:OnUnload(function()
+        PreviewOuter:Destroy();
+    end);
+
+    task.defer(PositionPreview);
+    -- end of esp preview panel
+
     return Window;
 end;
 
