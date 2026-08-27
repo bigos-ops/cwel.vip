@@ -9,8 +9,7 @@ local RenderStepped = RunService.RenderStepped;
 local LocalPlayer = Players.LocalPlayer;
 local Mouse = LocalPlayer:GetMouse();
 
-local ProtectGui = (protectgui and protectgui) or (syn and syn.protect_gui) or function() end
-ProtectGui(ScreenGui)
+local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 
 local ScreenGui = Instance.new('ScreenGui');
 ProtectGui(ScreenGui);
@@ -3320,10 +3319,17 @@ function Library:CreateWindow(...)
 
                 if Layout and Layout.AbsoluteContentSize then
                     Size = Layout.AbsoluteContentSize.Y;
-                    else
-                        for _, Element in next, Groupbox.Container:GetChildren() do
-                            Size = Size + Library:GetGuiObjectHeight(Element);
+                else
+                    for _, Element in next, Groupbox.Container:GetChildren() do
+                        if Element:IsA('UIListLayout') then
+                            -- skip layout objects
+                        else
+                            -- only consider GuiObjects that have a Visible property (avoid UIStroke etc)
+                            if Element:IsA('GuiObject') and Element.Visible then
+                                Size = Size + (Element.Size and Element.Size.Y and Element.Size.Y.Offset or 0);
+                            end;
                         end;
+                    end;
                 end;
 
                 BoxOuter.Size = UDim2.new(1, 0, 0, 20 + Size + 2 + 2);
@@ -3516,7 +3522,13 @@ function Library:CreateWindow(...)
                         Size = Layout.AbsoluteContentSize.Y;
                     else
                         for _, Element in next, Tab.Container:GetChildren() do
-                            Size = Size + Library:GetGuiObjectHeight(Element);
+                            if Element:IsA('UIListLayout') then
+                                -- skip layout objects
+                            else
+                                if Element:IsA('GuiObject') and Element.Visible then
+                                    Size = Size + (Element.Size and Element.Size.Y and Element.Size.Y.Offset or 0);
+                                end;
+                            end;
                         end;
                     end;
 
