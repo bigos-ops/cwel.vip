@@ -3827,36 +3827,11 @@ function Library:CreateWindow(...)
 
     Window.ESPPreview = Preview;
 
-    -- Keep the preview beside the window, and pull it back on-screen when there is no room.
+    -- Center the preview on screen.
+    PreviewGui.AnchorPoint = Vector2.new(0.5, 0.5);
+    PreviewGui.Position = UDim2.fromScale(0.5, 0.5);
+
     local function PlacePreview()
-        local Cam = workspace.CurrentCamera;
-        local Viewport = Cam and Cam.ViewportSize or Vector2.new(1920, 1080);
-
-        local PreviewWidth = PreviewGui.AbsoluteSize.X;
-        local PreviewHeight = PreviewGui.AbsoluteSize.Y;
-
-        if PreviewWidth <= 0 then PreviewWidth = 220 end;
-        if PreviewHeight <= 0 then PreviewHeight = 330 end;
-
-        local WindowPos = Outer.AbsolutePosition;
-        local WindowSize = Outer.AbsoluteSize;
-
-        local RightX = WindowPos.X + WindowSize.X + 8;
-        local LeftX = WindowPos.X - PreviewWidth - 8;
-
-        local X;
-        if RightX + PreviewWidth <= Viewport.X - 4 then
-            X = RightX;
-        elseif LeftX >= 4 then
-            X = LeftX;
-        else
-            -- No room on either side (very wide window): overlap the right edge so it stays visible.
-            X = Viewport.X - PreviewWidth - 8;
-        end;
-
-        local Y = math.clamp(WindowPos.Y, 4, math.max(4, Viewport.Y - PreviewHeight - 4));
-
-        PreviewGui.Position = UDim2.fromOffset(math.floor(X), math.floor(Y));
         PreviewGui.Visible = Preview.Visible and Outer.Visible;
     end;
 
