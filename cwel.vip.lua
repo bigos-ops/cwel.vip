@@ -12,13 +12,19 @@ local Mouse = LocalPlayer:GetMouse();
 local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 
 -- start of tahoma font support
+-- Windows XP used Tahoma. Roblox's Font.new() needs a font-family JSON, not a
+-- raw .ttf, so we download the ttf and generate a family file that points at it.
+-- Falls back to Arial (closest built-in match to the XP look) if unsupported.
+local FALLBACK_FONT = Enum.Font.Arial;
+
 local function GetTahomaFont()
     local FontUrl = 'https://raw.githubusercontent.com/sametexe001/luas/main/fonts/windows-xp-tahoma.ttf'
     local FontFile = 'cwel.vip.tahoma.ttf'
+    local FamilyFile = 'cwel.vip.tahoma.json'
     local AssetLoader = getcustomasset or getsynasset
 
     if not (writefile and isfile and AssetLoader) then
-        return Enum.Font.SourceSansSemibold
+        return FALLBACK_FONT
     end
 
     if not isfile(FontFile) then
@@ -27,17 +33,38 @@ local function GetTahomaFont()
         end)
 
         if not Success or type(Data) ~= 'string' or #Data < 100 then
-            return Enum.Font.SourceSansSemibold
+            return FALLBACK_FONT
         end
 
         writefile(FontFile, Data)
     end
 
-    local Success, Font = pcall(function()
-        return Font.new(AssetLoader(FontFile), Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+    local Ok, TtfAsset = pcall(AssetLoader, FontFile)
+    if not Ok or type(TtfAsset) ~= 'string' then
+        return FALLBACK_FONT
+    end
+
+    local Family = string.format(
+        '{"name":"Tahoma","faces":[{"name":"Regular","weight":400,"style":"normal","assetId":"%s"},' ..
+        '{"name":"Bold","weight":700,"style":"normal","assetId":"%s"}]}',
+        TtfAsset, TtfAsset
+    )
+
+    local WroteFamily = pcall(writefile, FamilyFile, Family)
+    if not WroteFamily then
+        return FALLBACK_FONT
+    end
+
+    local FamilyOk, FamilyAsset = pcall(AssetLoader, FamilyFile)
+    if not FamilyOk or type(FamilyAsset) ~= 'string' then
+        return FALLBACK_FONT
+    end
+
+    local Built, Result = pcall(function()
+        return Font.new(FamilyAsset, Enum.FontWeight.Regular, Enum.FontStyle.Normal)
     end)
 
-    return Success and Font or Enum.Font.SourceSansSemibold
+    return Built and Result or FALLBACK_FONT
 end
 -- end of tahoma font support
 
@@ -3691,10 +3718,10 @@ function Library:CreateWindow(...)
 
     local PreviewGui = Library:Create('Frame', {
         Name = 'ESPPreview';
-        AnchorPoint = Vector2.new(0.5, 0.5);
-        BackgroundColor3 = Color3.new(0, 0, 0);
+        AnchorPoint = Vector2.new(0, 0);
+        BackgroundColor3 = Library.Black;
         BorderSizePixel = 0;
-        Position = UDim2.fromScale(0.5, 0.5);
+        Position = UDim2.fromOffset(8, 8);
         Size = UDim2.fromOffset(220, 330);
         Visible = true;
         ZIndex = PREVIEW_Z;
@@ -3771,16 +3798,23 @@ function Library:CreateWindow(...)
     -- Blocky rig: head, torso, two arms, two legs.
     local PreviewParts = {};
     local function AddPreviewPart(Name, Position, Size)
-        PreviewParts[Name] = Library:Create('Frame', {
+        local Part = Library:Create('Frame', {
             Name = Name;
-            BackgroundColor3 = Color3.fromRGB(150, 150, 156);
-            BorderColor3 = Color3.fromRGB(12, 12, 14);
+            BackgroundColor3 = Library.OutlineColor;
+            BorderColor3 = Library.Black;
             BorderSizePixel = 1;
             Position = Position;
             Size = Size;
             ZIndex = PREVIEW_Z + 4;
             Parent = PreviewCanvas;
         });
+
+        Library:AddToRegistry(Part, {
+            BackgroundColor3 = 'OutlineColor';
+            BorderColor3 = 'Black';
+        });
+
+        PreviewParts[Name] = Part;
     end;
 
     AddPreviewPart('Head', UDim2.fromOffset(84, 46), UDim2.fromOffset(34, 28));
@@ -3815,19 +3849,23 @@ function Library:CreateWindow(...)
         Parent = PreviewCanvas;
     });
 
+    Library:AddToRegistry(PreviewName, {
+        TextColor3 = 'AccentColor';
+    });
+
     local PreviewDistance = Library:CreateLabel({
         Position = UDim2.fromOffset(28, 244);
         Size = UDim2.fromOffset(146, 16);
         Text = '[ 42m ]';
-        TextColor3 = Color3.fromRGB(190, 190, 190);
+        TextColor3 = Library.FontColor;
         TextSize = 13;
         ZIndex = PREVIEW_Z + 6;
         Parent = PreviewCanvas;
     });
 
     local PreviewHealth = Library:Create('Frame', {
-        BackgroundColor3 = Color3.fromRGB(20, 20, 22);
-        BorderColor3 = Color3.fromRGB(12, 12, 14);
+        BackgroundColor3 = Library.MainColor;
+        BorderColor3 = Library.Black;
         BorderSizePixel = 1;
         Position = UDim2.fromOffset(41, 42);
         Size = UDim2.fromOffset(4, 200);
@@ -3835,14 +3873,23 @@ function Library:CreateWindow(...)
         Parent = PreviewCanvas;
     });
 
-    Library:Create('Frame', {
-        BackgroundColor3 = Color3.fromRGB(93, 177, 105);
+    Library:AddToRegistry(PreviewHealth, {
+        BackgroundColor3 = 'MainColor';
+        BorderColor3 = 'Black';
+    });
+
+    local PreviewHealthFill = Library:Create('Frame', {
+        BackgroundColor3 = Library.AccentColor;
         BorderSizePixel = 0;
         AnchorPoint = Vector2.new(0, 1);
         Position = UDim2.fromScale(0, 1);
         Size = UDim2.fromScale(1, 0.78);
         ZIndex = PREVIEW_Z + 6;
         Parent = PreviewHealth;
+    });
+
+    Library:AddToRegistry(PreviewHealthFill, {
+        BackgroundColor3 = 'AccentColor';
     });
 
     local Preview = {};
@@ -3857,6 +3904,7 @@ function Library:CreateWindow(...)
         PreviewRule.BackgroundColor3 = Color;
         PreviewBox.BorderColor3 = Color;
         PreviewName.TextColor3 = Color;
+        PreviewHealthFill.BackgroundColor3 = Color;
     end;
     function Preview:SetNameVisible(Value)
         PreviewName.Visible = Value;
@@ -3871,7 +3919,28 @@ function Library:CreateWindow(...)
 
     Window.ESPPreview = Preview;
 
+    -- Attach to the right side of the main window, with a small gap.
+    -- Kept in Library.ScreenGui (not parented to Outer) and clamped so a very
+    -- wide window can never push it off-screen.
     local function PlacePreview()
+        local Cam = workspace.CurrentCamera;
+        local Viewport = Cam and Cam.ViewportSize or Vector2.new(1920, 1080);
+
+        local Width = PreviewGui.AbsoluteSize.X;
+        local Height = PreviewGui.AbsoluteSize.Y;
+        if Width <= 0 then Width = 220 end;
+        if Height <= 0 then Height = 330 end;
+
+        local WindowPos = Outer.AbsolutePosition;
+        local WindowSize = Outer.AbsoluteSize;
+
+        local X = WindowPos.X + WindowSize.X + 6;
+        local Y = WindowPos.Y;
+
+        X = math.clamp(X, 4, math.max(4, Viewport.X - Width - 4));
+        Y = math.clamp(Y, 4, math.max(4, Viewport.Y - Height - 4));
+
+        PreviewGui.Position = UDim2.fromOffset(math.floor(X), math.floor(Y));
         PreviewGui.Visible = Preview.Visible and Outer.Visible;
     end;
 
