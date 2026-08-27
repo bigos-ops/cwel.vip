@@ -471,7 +471,9 @@ do
 
         local ColorPicker = {
             Value = Info.Default;
-            Transparency = Info.Transparency or 0;
+            -- `Info.Transparency` is used as a boolean flag to enable transparency UI.
+            -- Ensure `ColorPicker.Transparency` is a numeric value (0..1) for math ops.
+            Transparency = (type(Info.Transparency) == 'number' and Info.Transparency) or 0;
             Type = 'ColorPicker';
             Title = type(Info.Title) == 'string' and Info.Title or 'Color picker',
             Callback = Info.Callback or function(Color) end;
