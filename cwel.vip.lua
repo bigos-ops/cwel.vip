@@ -29,21 +29,15 @@ local Library = {
 
     HudRegistry = {};
 
-    FontColor = Color3.fromRGB(235, 235, 245);
-    MainColor = Color3.fromRGB(24, 24, 32);
-    BackgroundColor = Color3.fromRGB(16, 16, 22);
-    AccentColor = Color3.fromRGB(124, 92, 255);
-    OutlineColor = Color3.fromRGB(42, 42, 55);
-    RiskColor = Color3.fromRGB(255, 80, 90),
+    FontColor = Color3.fromRGB(255, 255, 255);
+    MainColor = Color3.fromRGB(28, 28, 28);
+    BackgroundColor = Color3.fromRGB(20, 20, 20);
+    AccentColor = Color3.fromRGB(0, 85, 255);
+    OutlineColor = Color3.fromRGB(50, 50, 50);
+    RiskColor = Color3.fromRGB(255, 50, 50),
 
     Black = Color3.new(0, 0, 0);
-    Font = Enum.Font.GothamMedium,
-
-    -- New: styling for the rounded/modern skin
-    CornerRadius = UDim.new(0, 6);
-    StrokeThickness = 1;
-    StrokeTransparency = 0.35;
-    HoverTweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out);
+    Font = Enum.Font.GothamBold,
 
     OpenedFrames = {};
     DependencyBoxes = {};
@@ -124,51 +118,15 @@ function Library:AttemptSave()
     end;
 end;
 
-local RoundedClasses = {
-    Frame = true,
-    TextButton = true,
-    ImageButton = true,
-    TextBox = true,
-    ScrollingFrame = true,
-};
-
 function Library:Create(Class, Properties)
     local _Instance = Class;
-    local ClassName = type(Class) == 'string' and Class or Class.ClassName;
 
     if type(Class) == 'string' then
         _Instance = Instance.new(Class);
     end;
 
-    -- 'NoRound' is a meta-only flag used by the skin below, not a real
-    -- Roblox property, so pull it out before we assign everything else.
-    local NoRound = Properties.NoRound;
-
     for Property, Value in next, Properties do
-        if Property ~= 'NoRound' then
-            _Instance[Property] = Value;
-        end;
-    end;
-
-    -- Modern skin: give every panel/button rounded corners, and swap any
-    -- hard 1px border for a soft UIStroke instead (rounded corners look
-    -- broken with the old square BorderColor3/BorderSizePixel border).
-    if RoundedClasses[ClassName] and not NoRound then
-        Library:Create('UICorner', {
-            CornerRadius = Library.CornerRadius;
-            Parent = _Instance;
-        });
-
-        if Properties.BorderColor3 ~= nil and (_Instance.BorderSizePixel == nil or _Instance.BorderSizePixel > 0) then
-            Library:Create('UIStroke', {
-                Color = Properties.BorderColor3;
-                Thickness = Library.StrokeThickness;
-                Transparency = Library.StrokeTransparency;
-                Parent = _Instance;
-            });
-
-            _Instance.BorderSizePixel = 0;
-        end;
+        _Instance[Property] = Value;
     end;
 
     return _Instance;
@@ -183,30 +141,6 @@ function Library:ApplyTextStroke(Inst)
         LineJoinMode = Enum.LineJoinMode.Miter;
         Parent = Inst;
     });
-end;
-
-function Library:AddShadow(Inst, Transparency, Size)
-    -- Soft drop shadow using a common 9-slice blur asset. If the image
-    -- doesn't render on your executor, swap ShadowImage for another
-    -- blurred-edge asset id.
-    local ShadowImage = 'rbxassetid://5028857084';
-
-    local Shadow = Library:Create('ImageLabel', {
-        BackgroundTransparency = 1;
-        Image = ShadowImage;
-        ImageColor3 = Color3.new(0, 0, 0);
-        ImageTransparency = Transparency or 0.55;
-        ScaleType = Enum.ScaleType.Slice;
-        SliceCenter = Rect.new(24, 24, 276, 276);
-        Size = UDim2.new(1, Size or 40, 1, Size or 40);
-        Position = UDim2.new(0.5, 0, 0.5, 0);
-        AnchorPoint = Vector2.new(0.5, 0.5);
-        ZIndex = math.max((Inst.ZIndex or 1) - 1, 0);
-        Parent = Inst;
-        NoRound = true;
-    });
-
-    return Shadow;
 end;
 
 function Library:CreateLabel(Properties, IsHud)
@@ -318,8 +252,7 @@ function Library:OnHighlight(HighlightInstance, Instance, Properties, Properties
         local Reg = Library.RegistryMap[Instance];
 
         for Property, ColorIdx in next, Properties do
-            local Target = Library[ColorIdx] or ColorIdx;
-            TweenService:Create(Instance, Library.HoverTweenInfo, { [Property] = Target }):Play();
+            Instance[Property] = Library[ColorIdx] or ColorIdx;
 
             if Reg and Reg.Properties[Property] then
                 Reg.Properties[Property] = ColorIdx;
@@ -331,8 +264,7 @@ function Library:OnHighlight(HighlightInstance, Instance, Properties, Properties
         local Reg = Library.RegistryMap[Instance];
 
         for Property, ColorIdx in next, PropertiesDefault do
-            local Target = Library[ColorIdx] or ColorIdx;
-            TweenService:Create(Instance, Library.HoverTweenInfo, { [Property] = Target }):Play();
+            Instance[Property] = Library[ColorIdx] or ColorIdx;
 
             if Reg and Reg.Properties[Property] then
                 Reg.Properties[Property] = ColorIdx;
@@ -504,7 +436,7 @@ do
         local DisplayFrame = Library:Create('Frame', {
             BackgroundColor3 = ColorPicker.Value;
             BorderColor3 = Library:GetDarkerColor(ColorPicker.Value);
-            BorderMode = Enum.BorderMode.Inset;
+            BorderMode = Enum.BorderMode.Outline;
             Size = UDim2.new(0, 28, 0, 14);
             ZIndex = 6;
             Parent = ToggleLabel;
@@ -543,7 +475,7 @@ do
         local PickerFrameInner = Library:Create('Frame', {
             BackgroundColor3 = Library.BackgroundColor;
             BorderColor3 = Library.OutlineColor;
-            BorderMode = Enum.BorderMode.Inset;
+            BorderMode = Enum.BorderMode.Outline;
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 16;
             Parent = PickerFrameOuter;
@@ -559,6 +491,7 @@ do
 
         local SatVibMapOuter = Library:Create('Frame', {
             BorderColor3 = Color3.new(0, 0, 0);
+            BorderMode = Enum.BorderMode.Outline;
             Position = UDim2.new(0, 4, 0, 25);
             Size = UDim2.new(0, 200, 0, 200);
             ZIndex = 17;
@@ -568,7 +501,7 @@ do
         local SatVibMapInner = Library:Create('Frame', {
             BackgroundColor3 = Library.BackgroundColor;
             BorderColor3 = Library.OutlineColor;
-            BorderMode = Enum.BorderMode.Inset;
+            BorderMode = Enum.BorderMode.Outline;
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 18;
             Parent = SatVibMapOuter;
@@ -637,7 +570,7 @@ do
         local HueBoxInner = Library:Create('Frame', {
             BackgroundColor3 = Library.MainColor;
             BorderColor3 = Library.OutlineColor;
-            BorderMode = Enum.BorderMode.Inset;
+            BorderMode = Enum.BorderMode.Outline;
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 18,
             Parent = HueBoxOuter;
@@ -696,7 +629,7 @@ do
             TransparencyBoxInner = Library:Create('Frame', {
                 BackgroundColor3 = ColorPicker.Value;
                 BorderColor3 = Library.OutlineColor;
-                BorderMode = Enum.BorderMode.Inset;
+                BorderMode = Enum.BorderMode.Outline;
                 Size = UDim2.new(1, 0, 1, 0);
                 ZIndex = 19;
                 Parent = TransparencyBoxOuter;
@@ -748,7 +681,7 @@ do
             ContextMenu.Inner = Library:Create('Frame', {
                 BackgroundColor3 = Library.BackgroundColor;
                 BorderColor3 = Library.OutlineColor;
-                BorderMode = Enum.BorderMode.Inset;
+                BorderMode = Enum.BorderMode.Outline;
                 Size = UDim2.fromScale(1, 1);
                 ZIndex = 15;
                 Parent = ContextMenu.Container;
@@ -1102,7 +1035,7 @@ do
         local PickInner = Library:Create('Frame', {
             BackgroundColor3 = Library.BackgroundColor;
             BorderColor3 = Library.OutlineColor;
-            BorderMode = Enum.BorderMode.Inset;
+            BorderMode = Enum.BorderMode.Outline;
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 7;
             Parent = PickOuter;
@@ -1138,7 +1071,7 @@ do
         local ModeSelectInner = Library:Create('Frame', {
             BackgroundColor3 = Library.BackgroundColor;
             BorderColor3 = Library.OutlineColor;
-            BorderMode = Enum.BorderMode.Inset;
+            BorderMode = Enum.BorderMode.Outline;
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 15;
             Parent = ModeSelectOuter;
@@ -1505,7 +1438,7 @@ do
             local Inner = Library:Create('Frame', {
                 BackgroundColor3 = Library.MainColor;
                 BorderColor3 = Library.OutlineColor;
-                BorderMode = Enum.BorderMode.Inset;
+                BorderMode = Enum.BorderMode.Outline;
                 Size = UDim2.new(1, 0, 1, 0);
                 ZIndex = 6;
                 Parent = Outer;
@@ -1678,7 +1611,7 @@ do
         local DividerInner = Library:Create('Frame', {
             BackgroundColor3 = Library.MainColor;
             BorderColor3 = Library.OutlineColor;
-            BorderMode = Enum.BorderMode.Inset;
+            BorderMode = Enum.BorderMode.Outline;
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 6;
             Parent = DividerOuter;
@@ -1733,7 +1666,7 @@ do
         local TextBoxInner = Library:Create('Frame', {
             BackgroundColor3 = Library.MainColor;
             BorderColor3 = Library.OutlineColor;
-            BorderMode = Enum.BorderMode.Inset;
+            BorderMode = Enum.BorderMode.Outline;
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 6;
             Parent = TextBoxOuter;
@@ -1912,7 +1845,7 @@ do
         local ToggleInner = Library:Create('Frame', {
             BackgroundColor3 = Library.MainColor;
             BorderColor3 = Library.OutlineColor;
-            BorderMode = Enum.BorderMode.Inset;
+            BorderMode = Enum.BorderMode.Outline;
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 6;
             Parent = ToggleOuter;
@@ -2069,7 +2002,7 @@ do
         local SliderInner = Library:Create('Frame', {
             BackgroundColor3 = Library.MainColor;
             BorderColor3 = Library.OutlineColor;
-            BorderMode = Enum.BorderMode.Inset;
+            BorderMode = Enum.BorderMode.Outline;
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 6;
             Parent = SliderOuter;
@@ -2281,7 +2214,7 @@ do
         local DropdownInner = Library:Create('Frame', {
             BackgroundColor3 = Library.MainColor;
             BorderColor3 = Library.OutlineColor;
-            BorderMode = Enum.BorderMode.Inset;
+            BorderMode = Enum.BorderMode.Outline;
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 6;
             Parent = DropdownOuter;
@@ -2357,7 +2290,7 @@ do
         local ListInner = Library:Create('Frame', {
             BackgroundColor3 = Library.MainColor;
             BorderColor3 = Library.OutlineColor;
-            BorderMode = Enum.BorderMode.Inset;
+            BorderMode = Enum.BorderMode.Outline;
             BorderSizePixel = 0;
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 21;
@@ -2775,7 +2708,7 @@ do
     local WatermarkInner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
         BorderColor3 = Library.AccentColor;
-        BorderMode = Enum.BorderMode.Inset;
+        BorderMode = Enum.BorderMode.Outline;
         Size = UDim2.new(1, 0, 1, 0);
         ZIndex = 201;
         Parent = WatermarkOuter;
@@ -2840,7 +2773,7 @@ do
     local KeybindInner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
         BorderColor3 = Library.OutlineColor;
-        BorderMode = Enum.BorderMode.Inset;
+        BorderMode = Enum.BorderMode.Outline;
         Size = UDim2.new(1, 0, 1, 0);
         ZIndex = 101;
         Parent = KeybindOuter;
@@ -2926,7 +2859,7 @@ function Library:Notify(Text, Time)
     local NotifyInner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
         BorderColor3 = Library.OutlineColor;
-        BorderMode = Enum.BorderMode.Inset;
+        BorderMode = Enum.BorderMode.Outline;
         Size = UDim2.new(1, 0, 1, 0);
         ZIndex = 101;
         Parent = NotifyOuter;
@@ -3039,17 +2972,11 @@ function Library:CreateWindow(...)
     });
 
     Library:MakeDraggable(Outer, 25);
-    Library:AddShadow(Outer, 0.5, 50);
-
-    local WindowScale = Library:Create('UIScale', {
-        Scale = 1;
-        Parent = Outer;
-    });
 
     local Inner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
         BorderColor3 = Library.AccentColor;
-        BorderMode = Enum.BorderMode.Inset;
+        BorderMode = Enum.BorderMode.Outline;
         Position = UDim2.new(0, 1, 0, 1);
         Size = UDim2.new(1, -2, 1, -2);
         ZIndex = 1;
@@ -3087,7 +3014,7 @@ function Library:CreateWindow(...)
     local MainSectionInner = Library:Create('Frame', {
         BackgroundColor3 = Library.BackgroundColor;
         BorderColor3 = Color3.new(0, 0, 0);
-        BorderMode = Enum.BorderMode.Inset;
+        BorderMode = Enum.BorderMode.Outline;
         Position = UDim2.new(0, 0, 0, 0);
         Size = UDim2.new(1, 0, 1, 0);
         ZIndex = 1;
@@ -3593,10 +3520,7 @@ function Library:CreateWindow(...)
 
         if Toggled then
             -- A bit scuffed, but if we're going from not toggled -> toggled we want to show the frame immediately so that the fade is visible.
-            WindowScale.Scale = 0.94;
             Outer.Visible = true;
-
-            TweenService:Create(WindowScale, TweenInfo.new(FadeTime, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play();
 
             task.spawn(function()
                 -- TODO: add cursor fade?
@@ -3636,8 +3560,6 @@ function Library:CreateWindow(...)
                 Cursor:Remove();
                 CursorOutline:Remove();
             end);
-        else
-            TweenService:Create(WindowScale, TweenInfo.new(FadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Scale = 0.94 }):Play();
         end;
 
         for _, Desc in next, Outer:GetDescendants() do
