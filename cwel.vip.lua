@@ -3826,11 +3826,11 @@ function Library:CreateWindow(...)
 
     local function PositionPreview()
         local Viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080);
-        local RightPosition = Outer.AbsolutePosition.X + Outer.AbsoluteSize.X + 10;
+        local RightPosition = Outer.AbsolutePosition.X + Outer.AbsoluteSize.X + 4;
         local LeftPosition = Outer.AbsolutePosition.X - PreviewGui.AbsoluteSize.X - 10;
         local X = RightPosition + PreviewGui.AbsoluteSize.X <= Viewport.X and RightPosition or math.max(8, LeftPosition);
 
-        PreviewGui.Position = UDim2.fromOffset(X, math.max(8, Outer.AbsolutePosition.Y + 25));
+        PreviewGui.Position = UDim2.fromOffset(X, math.max(8, Outer.AbsolutePosition.Y));
         PreviewGui.Visible = Preview.Visible and Outer.Visible;
     end;
 
