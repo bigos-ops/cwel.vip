@@ -3685,16 +3685,25 @@ function Library:CreateWindow(...)
     Window.Holder = Outer;
 
     -- start of library esp preview
+    local PreviewScreenGui = Library:Create('ScreenGui', {
+        Name = 'CwelESPPreview';
+        ZIndexBehavior = Enum.ZIndexBehavior.Global;
+        DisplayOrder = 100;
+        Enabled = true;
+    });
+    ProtectGui(PreviewScreenGui);
+    PreviewScreenGui.Parent = CoreGui;
+
     local PreviewGui = Library:Create('Frame', {
         Name = 'ESPPreview';
         AnchorPoint = Vector2.new(0, 0);
         BackgroundColor3 = Color3.new(0, 0, 0);
         BorderSizePixel = 0;
-        Position = UDim2.new(1, 4, 0, 0);
+        Position = UDim2.fromOffset(8, 8);
         Size = UDim2.fromOffset(220, 330);
         Visible = true;
         ZIndex = 100;
-        Parent = Outer;
+        Parent = PreviewScreenGui;
     });
 
     local PreviewInner = Library:Create('Frame', {
@@ -3806,7 +3815,7 @@ function Library:CreateWindow(...)
 
     function Preview:SetVisible(Value)
         self.Visible = not not Value;
-        PreviewGui.Visible = self.Visible;
+        PreviewGui.Visible = self.Visible and Outer.Visible;
     end;
     function Preview:SetAccentColor(Color)
         PreviewInner.BorderColor3 = Color;
@@ -3827,8 +3836,28 @@ function Library:CreateWindow(...)
 
     Window.ESPPreview = Preview;
 
+    local function UpdatePreviewPlacement()
+        local Camera = workspace.CurrentCamera;
+        local Viewport = Camera and Camera.ViewportSize or Vector2.new(1920, 1080);
+        local RightX = Outer.AbsolutePosition.X + Outer.AbsoluteSize.X + 4;
+        local LeftX = Outer.AbsolutePosition.X - PreviewGui.AbsoluteSize.X - 4;
+        local X = RightX + PreviewGui.AbsoluteSize.X <= Viewport.X - 4 and RightX or LeftX;
+
+        PreviewGui.Position = UDim2.fromOffset(
+            math.clamp(X, 4, math.max(4, Viewport.X - PreviewGui.AbsoluteSize.X - 4)),
+            math.clamp(Outer.AbsolutePosition.Y, 4, math.max(4, Viewport.Y - PreviewGui.AbsoluteSize.Y - 4))
+        );
+        PreviewGui.Visible = Preview.Visible and Outer.Visible;
+    end;
+
+    Outer:GetPropertyChangedSignal('AbsolutePosition'):Connect(UpdatePreviewPlacement);
+    Outer:GetPropertyChangedSignal('AbsoluteSize'):Connect(UpdatePreviewPlacement);
+    Outer:GetPropertyChangedSignal('Visible'):Connect(UpdatePreviewPlacement);
+    Library:GiveSignal(RenderStepped:Connect(UpdatePreviewPlacement));
+    task.defer(UpdatePreviewPlacement);
+
     Library:OnUnload(function()
-        PreviewGui:Destroy();
+        PreviewScreenGui:Destroy();
     end);
     -- end of library esp preview
 
