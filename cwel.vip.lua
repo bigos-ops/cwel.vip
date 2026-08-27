@@ -6,24 +6,22 @@ local Players = game:GetService('Players');
 local RunService = game:GetService('RunService')
 local TweenService = game:GetService('TweenService');
 local RenderStepped = RunService.RenderStepped;
--- Safely obtain LocalPlayer and Mouse. In some contexts (server) LocalPlayer is nil,
--- so wait for PlayerAdded or guard the GetMouse call to avoid runtime errors.
-local LocalPlayer = Players.LocalPlayer
+
+local LocalPlayer = Players.LocalPlayer;
 if not LocalPlayer then
-    LocalPlayer = Players.PlayerAdded and Players.PlayerAdded:Wait()
+    LocalPlayer = Players.PlayerAdded and Players.PlayerAdded:Wait() or nil
 end
 
-local Mouse
-if LocalPlayer and type(LocalPlayer.GetMouse) == 'function' then
-    Mouse = LocalPlayer:GetMouse()
-else
-    Mouse = nil
+local Mouse = nil
+if LocalPlayer and typeof(LocalPlayer.GetMouse) == 'function' then
+    local ok, m = pcall(function() return LocalPlayer:GetMouse() end)
+    if ok then Mouse = m end
 end
 
 local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 
 local ScreenGui = Instance.new('ScreenGui');
-ProtectGui(ScreenGui);
+pcall(ProtectGui, ScreenGui);
 
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
 ScreenGui.Parent = CoreGui;
