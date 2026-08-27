@@ -3683,10 +3683,11 @@ function Library:CreateWindow(...)
 
     Window.Holder = Outer;
 
-    -- start of esp preview panel
-    local PreviewOuter = Library:Create('Frame', {
+    -- start of library esp preview
+    local PreviewGui = Library:Create('Frame', {
         BackgroundColor3 = Color3.new(0, 0, 0);
         BorderSizePixel = 0;
+        Position = UDim2.fromOffset(Outer.AbsolutePosition.X + Outer.AbsoluteSize.X + 10, Outer.AbsolutePosition.Y + 25);
         Size = UDim2.fromOffset(220, 330);
         Visible = false;
         ZIndex = 50;
@@ -3696,14 +3697,13 @@ function Library:CreateWindow(...)
     local PreviewInner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
         BorderColor3 = Library.AccentColor;
-        BorderMode = Enum.BorderMode.Inset;
         Position = UDim2.fromOffset(1, 1);
         Size = UDim2.new(1, -2, 1, -2);
         ZIndex = 51;
-        Parent = PreviewOuter;
+        Parent = PreviewGui;
     });
 
-    local PreviewTitle = Library:CreateLabel({
+    Library:CreateLabel({
         Position = UDim2.fromOffset(8, 4);
         Size = UDim2.new(1, -16, 0, 20);
         Text = 'ESP Preview';
@@ -3740,20 +3740,16 @@ function Library:CreateWindow(...)
         Parent = PreviewCanvas;
     });
 
-    local BodyParts = {};
-    local BodyColor = Color3.fromRGB(178, 178, 184);
-
+    local PreviewParts = {};
     local function AddPreviewPart(Name, Position, Size)
-        local Part = Library:Create('Frame', {
-            BackgroundColor3 = BodyColor;
-            BorderColor3 = Color3.fromRGB(10, 10, 10);
+        PreviewParts[Name] = Library:Create('Frame', {
+            BackgroundColor3 = Color3.fromRGB(178, 178, 184);
+            BorderColor3 = Color3.new(0, 0, 0);
             Position = Position;
             Size = Size;
             ZIndex = 53;
             Parent = PreviewCanvas;
         });
-
-        BodyParts[Name] = Part;
     end;
 
     AddPreviewPart('Head', UDim2.fromOffset(91, 55), UDim2.fromOffset(36, 30));
@@ -3783,9 +3779,9 @@ function Library:CreateWindow(...)
         Parent = PreviewCanvas;
     });
 
-    local HealthBack = Library:Create('Frame', {
+    local PreviewHealth = Library:Create('Frame', {
         BackgroundColor3 = Color3.fromRGB(38, 38, 40);
-        BorderColor3 = Color3.fromRGB(10, 10, 10);
+        BorderColor3 = Color3.new(0, 0, 0);
         Position = UDim2.fromOffset(171, 88);
         Size = UDim2.fromOffset(5, 79);
         ZIndex = 53;
@@ -3799,74 +3795,46 @@ function Library:CreateWindow(...)
         Position = UDim2.fromScale(0, 1);
         Size = UDim2.fromScale(1, 0.78);
         ZIndex = 54;
-        Parent = HealthBack;
+        Parent = PreviewHealth;
     });
 
-    local PreviewFooter = Library:CreateLabel({
-        Position = UDim2.new(0, 8, 1, -24);
-        Size = UDim2.new(1, -16, 0, 16);
-        Text = 'visual check  /  active';
-        TextColor3 = Color3.fromRGB(160, 160, 165);
-        TextSize = 12;
-        ZIndex = 54;
-        Parent = PreviewCanvas;
-    });
-
-    local Preview = {
-        Frame = PreviewOuter;
-        Inner = PreviewInner;
-        Box = PreviewBox;
-        Name = PreviewName;
-        Distance = PreviewDistance;
-        Health = HealthBack;
-        Parts = BodyParts;
-        Accent = PreviewRule;
-    };
-
-    function Preview:SetVisible(Visible)
-        self.Frame.Visible = Visible and Outer.Visible;
+    local Preview = {};
+    function Preview:SetVisible(Value)
+        self.Visible = not not Value;
+        PreviewGui.Visible = self.Visible and Outer.Visible;
     end;
-
     function Preview:SetAccentColor(Color)
-        self.Inner.BorderColor3 = Color;
-        self.Box.BorderColor3 = Color;
-        self.Accent.BackgroundColor3 = Color;
-        self.Name.TextColor3 = Color;
+        PreviewInner.BorderColor3 = Color;
+        PreviewRule.BackgroundColor3 = Color;
+        PreviewBox.BorderColor3 = Color;
+        PreviewName.TextColor3 = Color;
     end;
-
-    function Preview:SetNameVisible(Visible)
-        self.Name.Visible = Visible;
-        self.Distance.Visible = Visible;
+    function Preview:SetNameVisible(Value)
+        PreviewName.Visible = Value;
+        PreviewDistance.Visible = Value;
     end;
-
-    function Preview:SetHealthVisible(Visible)
-        self.Health.Visible = Visible;
+    function Preview:SetHealthVisible(Value)
+        PreviewHealth.Visible = Value;
     end;
-
-    function Preview:SetBoxVisible(Visible)
-        self.Box.Visible = Visible;
+    function Preview:SetBoxVisible(Value)
+        PreviewBox.Visible = Value;
     end;
 
     Window.ESPPreview = Preview;
 
     local function PositionPreview()
-        local WindowPosition = Outer.AbsolutePosition;
-        local WindowSize = Outer.AbsoluteSize;
-
-        PreviewOuter.Position = UDim2.fromOffset(WindowPosition.X + WindowSize.X + 10, WindowPosition.Y + 25);
-        PreviewOuter.Visible = Outer.Visible;
+        PreviewGui.Position = UDim2.fromOffset(Outer.AbsolutePosition.X + Outer.AbsoluteSize.X + 10, Outer.AbsolutePosition.Y + 25);
+        PreviewGui.Visible = Preview.Visible and Outer.Visible;
     end;
 
     Outer:GetPropertyChangedSignal('AbsolutePosition'):Connect(PositionPreview);
     Outer:GetPropertyChangedSignal('AbsoluteSize'):Connect(PositionPreview);
     Outer:GetPropertyChangedSignal('Visible'):Connect(PositionPreview);
-
     Library:OnUnload(function()
-        PreviewOuter:Destroy();
+        PreviewGui:Destroy();
     end);
-
     task.defer(PositionPreview);
-    -- end of esp preview panel
+    -- end of library esp preview
 
     return Window;
 end;
