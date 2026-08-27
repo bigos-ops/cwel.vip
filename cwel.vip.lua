@@ -1,3 +1,8 @@
+-- Basic environment validation to give clearer errors when run outside Roblox
+if type(game) ~= 'table' or type(game.GetService) ~= 'function' then
+    error("cwel.vip.lua requires a Roblox environment (missing 'game' global)")
+end
+
 local InputService = game:GetService('UserInputService');
 local TextService = game:GetService('TextService');
 local CoreGui = game:GetService('CoreGui');
@@ -7,7 +12,7 @@ local RunService = game:GetService('RunService')
 local TweenService = game:GetService('TweenService');
 local RenderStepped = RunService.RenderStepped;
 local LocalPlayer = Players.LocalPlayer;
-local Mouse = LocalPlayer:GetMouse();
+local Mouse = (LocalPlayer and LocalPlayer.GetMouse and LocalPlayer:GetMouse()) or { X = 0, Y = 0 };
 
 local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 
