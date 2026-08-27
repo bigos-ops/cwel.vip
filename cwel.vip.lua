@@ -30,18 +30,14 @@ local Library = {
     HudRegistry = {};
 
     FontColor = Color3.fromRGB(255, 255, 255);
-    -- Visual style: updated for a modern rounded UI
-    FontColor = Color3.fromRGB(235, 239, 241);
-    MainColor = Color3.fromRGB(36, 40, 44);
-    BackgroundColor = Color3.fromRGB(28, 30, 34);
-    AccentColor = Color3.fromRGB(0, 150, 136); -- teal accent
-    OutlineColor = Color3.fromRGB(60, 66, 72);
-    RiskColor = Color3.fromRGB(239, 83, 80),
+    MainColor = Color3.fromRGB(28, 28, 28);
+    BackgroundColor = Color3.fromRGB(20, 20, 20);
+    AccentColor = Color3.fromRGB(0, 85, 255);
+    OutlineColor = Color3.fromRGB(50, 50, 50);
+    RiskColor = Color3.fromRGB(255, 50, 50),
 
     Black = Color3.new(0, 0, 0);
-    Font = Enum.Font.SourceSansSemibold,
-    -- Default corner radius (px) for a rounded modern look. Set to 0 to disable.
-    DefaultRadius = 6,
+    Font = Enum.Font.Code,
 
     OpenedFrames = {};
     DependencyBoxes = {};
@@ -55,18 +51,18 @@ local Hue = 0
 
 table.insert(Library.Signals, RenderStepped:Connect(function(Delta)
     RainbowStep = RainbowStep + Delta
-    -- throttle rainbow updates for performance and smoother transition
-    if RainbowStep >= (1 / 20) then
+
+    if RainbowStep >= (1 / 60) then
         RainbowStep = 0
 
-        Hue = Hue + (1 / 200)
+        Hue = Hue + (1 / 400);
 
         if Hue > 1 then
-            Hue = 0
-        end
+            Hue = 0;
+        end;
 
-        Library.CurrentRainbowHue = Hue
-        Library.CurrentRainbowColor = Color3.fromHSV(Hue, 0.7, 0.95)
+        Library.CurrentRainbowHue = Hue;
+        Library.CurrentRainbowColor = Color3.fromHSV(Hue, 0.8, 1);
     end
 end))
 
@@ -123,33 +119,17 @@ function Library:AttemptSave()
 end;
 
 function Library:Create(Class, Properties)
-    local _Instance = Class
-
-    Properties = Properties or {}
+    local _Instance = Class;
 
     if type(Class) == 'string' then
-        _Instance = Instance.new(Class)
-    end
+        _Instance = Instance.new(Class);
+    end;
 
     for Property, Value in next, Properties do
-        -- support helper flags in Properties without assigning them
-        if Property ~= 'NoRound' and Property ~= 'NoStroke' then
-            _Instance[Property] = Value
-        end
-    end
+        _Instance[Property] = Value;
+    end;
 
-    -- Automatically apply a subtle rounded corner and stroke for a modern look
-    local className = type(Class) == 'string' and Class or (_Instance.ClassName or '')
-
-    if Library.DefaultRadius and Library.DefaultRadius > 0 and (className == 'Frame' or className == 'ImageLabel' or className == 'TextButton' or className == 'TextBox' or className == 'ImageButton' or className == 'ScrollingFrame') and not Properties.NoRound then
-        Library:Create('UICorner', { CornerRadius = UDim.new(0, Library.DefaultRadius), Parent = _Instance })
-    end
-
-    if (className == 'Frame' or className == 'ImageLabel' or className == 'TextButton') and not Properties.NoStroke then
-        Library:Create('UIStroke', { Color = Library.OutlineColor, Thickness = 1, Transparency = 0.6, Parent = _Instance })
-    end
-
-    return _Instance
+    return _Instance;
 end;
 
 function Library:ApplyTextStroke(Inst)
@@ -2718,9 +2698,9 @@ do
     local WatermarkOuter = Library:Create('Frame', {
         BorderColor3 = Color3.new(0, 0, 0);
         Position = UDim2.new(0, 100, 0, -25);
-        Size = UDim2.new(0, 240, 0, 26);
+        Size = UDim2.new(0, 213, 0, 20);
         ZIndex = 200;
-        Visible = true;
+        Visible = false;
         Parent = ScreenGui;
     });
 
