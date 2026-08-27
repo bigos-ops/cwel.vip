@@ -1173,6 +1173,9 @@ do
             SyncToggleState = Info.SyncToggleState or false;
         };
 
+        -- Get text from parent toggle or use default
+        Info.Text = Info.Text or (ToggleLabel and ToggleLabel.Text) or 'Keybind';
+
         if KeyPicker.SyncToggleState then
             Info.Modes = { 'Toggle' }
             Info.Mode = 'Toggle'
