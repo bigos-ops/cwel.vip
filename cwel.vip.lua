@@ -348,6 +348,20 @@ function Library:GetDarkerColor(Color)
 end;
 Library.AccentColorDark = Library:GetDarkerColor(Library.AccentColor);
 
+-- Safely return the vertical pixel height of a GUI child, or 0 for non-gui/UI objects.
+function Library:GetGuiObjectHeight(Obj)
+    if not Obj then return 0 end
+    if not Obj:IsA or not Obj:IsA('GuiObject') then return 0 end
+    if not Obj.Visible then return 0 end
+    -- Protect against instances that don't expose Size (eg UICorner, UIStroke)
+    local ok, s = pcall(function() return Obj.Size end)
+    if not ok or not s then return 0 end
+    if s and s.Y and s.Y.Offset then
+        return s.Y.Offset
+    end
+    return 0
+end;
+
 function Library:AddToRegistry(Instance, Properties, IsHud)
     local Idx = #Library.Registry + 1;
     local Data = {
@@ -2225,9 +2239,7 @@ do
         end
 
         for _, Element in next, Container:GetChildren() do
-            if Element:IsA('GuiObject') and Element.Size then
-                RelativeOffset = RelativeOffset + Element.Size.Y.Offset;
-            end;
+            RelativeOffset = RelativeOffset + Library:GetGuiObjectHeight(Element);
         end;
 
         local DropdownOuter = Library:Create('Frame', {
@@ -3307,17 +3319,10 @@ function Library:CreateWindow(...)
 
                 if Layout and Layout.AbsoluteContentSize then
                     Size = Layout.AbsoluteContentSize.Y;
-                else
-                    for _, Element in next, Groupbox.Container:GetChildren() do
-                        if Element:IsA('UIListLayout') then
-                            -- skip layout objects
-                        else
-                            -- only consider GuiObjects that have a Visible property (avoid UIStroke etc)
-                            if Element:IsA('GuiObject') and Element.Visible then
-                                Size = Size + (Element.Size and Element.Size.Y and Element.Size.Y.Offset or 0);
-                            end;
+                    else
+                        for _, Element in next, Groupbox.Container:GetChildren() do
+                            Size = Size + Library:GetGuiObjectHeight(Element);
                         end;
-                    end;
                 end;
 
                 BoxOuter.Size = UDim2.new(1, 0, 0, 20 + Size + 2 + 2);
@@ -3510,13 +3515,7 @@ function Library:CreateWindow(...)
                         Size = Layout.AbsoluteContentSize.Y;
                     else
                         for _, Element in next, Tab.Container:GetChildren() do
-                            if Element:IsA('UIListLayout') then
-                                -- skip layout objects
-                            else
-                                if Element:IsA('GuiObject') and Element.Visible then
-                                    Size = Size + (Element.Size and Element.Size.Y and Element.Size.Y.Offset or 0);
-                                end;
-                            end;
+                            Size = Size + Library:GetGuiObjectHeight(Element);
                         end;
                     end;
 
@@ -3721,11 +3720,10 @@ end;
 Players.PlayerAdded:Connect(OnPlayerChange);
 Players.PlayerRemoving:Connect(OnPlayerChange);
 
--- boii.
+-- Backwards compatibility: some callers expect `Library:Load`.
 function Library:Load(...)
     return Library:CreateWindow(...)
 end
 
 getgenv().Library = Library
 return Library
---executor is shit and ts wont work im crine
