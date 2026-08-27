@@ -2225,7 +2225,7 @@ do
         end
 
         for _, Element in next, Container:GetChildren() do
-            if not Element:IsA('UIListLayout') then
+            if Element:IsA('GuiObject') and Element.Size then
                 RelativeOffset = RelativeOffset + Element.Size.Y.Offset;
             end;
         end;
