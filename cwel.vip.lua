@@ -3008,6 +3008,7 @@ function Library:CreateWindow(...)
         AnchorPoint = Config.AnchorPoint,
         BackgroundColor3 = Color3.new(0, 0, 0);
         BorderSizePixel = 0;
+        ClipsDescendants = false;
         Position = Config.Position,
         Size = Config.Size,
         Visible = false;
@@ -3685,13 +3686,15 @@ function Library:CreateWindow(...)
 
     -- start of library esp preview
     local PreviewGui = Library:Create('Frame', {
+        Name = 'ESPPreview';
+        AnchorPoint = Vector2.new(0, 0);
         BackgroundColor3 = Color3.new(0, 0, 0);
         BorderSizePixel = 0;
-        Position = UDim2.fromOffset(Outer.AbsolutePosition.X + Outer.AbsoluteSize.X + 10, Outer.AbsolutePosition.Y + 25);
+        Position = UDim2.new(1, 4, 0, 0);
         Size = UDim2.fromOffset(220, 330);
         Visible = true;
-        ZIndex = 50;
-        Parent = ScreenGui;
+        ZIndex = 100;
+        Parent = Outer;
     });
 
     local PreviewInner = Library:Create('Frame', {
@@ -3699,7 +3702,7 @@ function Library:CreateWindow(...)
         BorderColor3 = Library.AccentColor;
         Position = UDim2.fromOffset(1, 1);
         Size = UDim2.new(1, -2, 1, -2);
-        ZIndex = 51;
+        ZIndex = 101;
         Parent = PreviewGui;
     });
 
@@ -3709,7 +3712,7 @@ function Library:CreateWindow(...)
         Text = 'ESP Preview';
         TextSize = 15;
         TextXAlignment = Enum.TextXAlignment.Left;
-        ZIndex = 52;
+        ZIndex = 102;
         Parent = PreviewInner;
     });
 
@@ -3718,7 +3721,7 @@ function Library:CreateWindow(...)
         BorderSizePixel = 0;
         Position = UDim2.fromOffset(8, 26);
         Size = UDim2.new(1, -16, 0, 1);
-        ZIndex = 52;
+        ZIndex = 102;
         Parent = PreviewInner;
     });
 
@@ -3727,7 +3730,7 @@ function Library:CreateWindow(...)
         BorderColor3 = Library.OutlineColor;
         Position = UDim2.fromOffset(8, 35);
         Size = UDim2.new(1, -16, 1, -43);
-        ZIndex = 51;
+        ZIndex = 101;
         Parent = PreviewInner;
     });
 
@@ -3736,7 +3739,7 @@ function Library:CreateWindow(...)
         BorderColor3 = Library.AccentColor;
         Position = UDim2.fromOffset(51, 47);
         Size = UDim2.fromOffset(116, 218);
-        ZIndex = 52;
+        ZIndex = 102;
         Parent = PreviewCanvas;
     });
 
@@ -3747,7 +3750,7 @@ function Library:CreateWindow(...)
             BorderColor3 = Color3.new(0, 0, 0);
             Position = Position;
             Size = Size;
-            ZIndex = 53;
+            ZIndex = 103;
             Parent = PreviewCanvas;
         });
     end;
@@ -3765,7 +3768,7 @@ function Library:CreateWindow(...)
         Text = 'ExamplePlayer';
         TextColor3 = Library.AccentColor;
         TextSize = 14;
-        ZIndex = 54;
+        ZIndex = 104;
         Parent = PreviewCanvas;
     });
 
@@ -3775,7 +3778,7 @@ function Library:CreateWindow(...)
         Text = '[ 42m ]';
         TextColor3 = Color3.fromRGB(190, 190, 190);
         TextSize = 13;
-        ZIndex = 54;
+        ZIndex = 104;
         Parent = PreviewCanvas;
     });
 
@@ -3784,7 +3787,7 @@ function Library:CreateWindow(...)
         BorderColor3 = Color3.new(0, 0, 0);
         Position = UDim2.fromOffset(171, 88);
         Size = UDim2.fromOffset(5, 79);
-        ZIndex = 53;
+        ZIndex = 103;
         Parent = PreviewCanvas;
     });
 
@@ -3794,7 +3797,7 @@ function Library:CreateWindow(...)
         AnchorPoint = Vector2.new(0, 1);
         Position = UDim2.fromScale(0, 1);
         Size = UDim2.fromScale(1, 0.78);
-        ZIndex = 54;
+        ZIndex = 104;
         Parent = PreviewHealth;
     });
 
@@ -3803,7 +3806,7 @@ function Library:CreateWindow(...)
 
     function Preview:SetVisible(Value)
         self.Visible = not not Value;
-        PreviewGui.Visible = self.Visible and Outer.Visible;
+        PreviewGui.Visible = self.Visible;
     end;
     function Preview:SetAccentColor(Color)
         PreviewInner.BorderColor3 = Color;
@@ -3824,23 +3827,9 @@ function Library:CreateWindow(...)
 
     Window.ESPPreview = Preview;
 
-    local function PositionPreview()
-        local Viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080);
-        local RightPosition = Outer.AbsolutePosition.X + Outer.AbsoluteSize.X + 4;
-        local LeftPosition = Outer.AbsolutePosition.X - PreviewGui.AbsoluteSize.X - 10;
-        local X = RightPosition + PreviewGui.AbsoluteSize.X <= Viewport.X and RightPosition or math.max(8, LeftPosition);
-
-        PreviewGui.Position = UDim2.fromOffset(X, math.max(8, Outer.AbsolutePosition.Y));
-        PreviewGui.Visible = Preview.Visible and Outer.Visible;
-    end;
-
-    Outer:GetPropertyChangedSignal('AbsolutePosition'):Connect(PositionPreview);
-    Outer:GetPropertyChangedSignal('AbsoluteSize'):Connect(PositionPreview);
-    Outer:GetPropertyChangedSignal('Visible'):Connect(PositionPreview);
     Library:OnUnload(function()
         PreviewGui:Destroy();
     end);
-    task.defer(PositionPreview);
     -- end of library esp preview
 
     return Window;
