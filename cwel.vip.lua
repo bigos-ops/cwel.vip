@@ -3699,5 +3699,10 @@ end;
 Players.PlayerAdded:Connect(OnPlayerChange);
 Players.PlayerRemoving:Connect(OnPlayerChange);
 
+-- Backwards compatibility: some callers expect `Library:Load`.
+function Library:Load(...)
+    return Library:CreateWindow(...)
+end
+
 getgenv().Library = Library
 return Library
