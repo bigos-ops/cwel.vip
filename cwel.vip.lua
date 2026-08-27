@@ -29,17 +29,15 @@ local Library = {
 
     HudRegistry = {};
 
-    -- start of midnight visual refresh
-    FontColor = Color3.fromRGB(226, 232, 240);
-    MainColor = Color3.fromRGB(20, 27, 43);
-    BackgroundColor = Color3.fromRGB(11, 16, 29);
-    AccentColor = Color3.fromRGB(56, 189, 248);
-    OutlineColor = Color3.fromRGB(48, 64, 91);
-    RiskColor = Color3.fromRGB(248, 113, 113),
+    FontColor = Color3.fromRGB(255, 255, 255);
+    MainColor = Color3.fromRGB(28, 28, 28);
+    BackgroundColor = Color3.fromRGB(20, 20, 20);
+    AccentColor = Color3.fromRGB(0, 85, 255);
+    OutlineColor = Color3.fromRGB(50, 50, 50);
+    RiskColor = Color3.fromRGB(255, 50, 50),
 
     Black = Color3.new(0, 0, 0);
-    Font = Enum.Font.GothamMedium,
-    -- end of midnight visual refresh
+    Font = Enum.Font.Code,
 
     OpenedFrames = {};
     DependencyBoxes = {};
@@ -1436,11 +1434,6 @@ do
                 ZIndex = 5;
             });
 
-            Library:Create('UICorner', {
-                CornerRadius = UDim.new(0, 4);
-                Parent = Outer;
-            });
-
             local Inner = Library:Create('Frame', {
                 BackgroundColor3 = Library.MainColor;
                 BorderColor3 = Library.OutlineColor;
@@ -1448,11 +1441,6 @@ do
                 Size = UDim2.new(1, 0, 1, 0);
                 ZIndex = 6;
                 Parent = Outer;
-            });
-
-            Library:Create('UICorner', {
-                CornerRadius = UDim.new(0, 3);
-                Parent = Inner;
             });
 
             local Label = Library:CreateLabel({
@@ -2982,12 +2970,6 @@ function Library:CreateWindow(...)
         Parent = ScreenGui;
     });
 
-    -- start of window surface polish
-    Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 8);
-        Parent = Outer;
-    });
-
     Library:MakeDraggable(Outer, 25);
 
     local Inner = Library:Create('Frame', {
@@ -3000,11 +2982,6 @@ function Library:CreateWindow(...)
         Parent = Outer;
     });
 
-    Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 7);
-        Parent = Inner;
-    });
-
     Library:AddToRegistry(Inner, {
         BackgroundColor3 = 'MainColor';
         BorderColor3 = 'AccentColor';
@@ -3012,25 +2989,11 @@ function Library:CreateWindow(...)
 
     local WindowLabel = Library:CreateLabel({
         Position = UDim2.new(0, 7, 0, 0);
-        Size = UDim2.new(1, -14, 0, 25);
-        TextSize = 15;
+        Size = UDim2.new(0, 0, 0, 25);
         Text = Config.Title or '';
         TextXAlignment = Enum.TextXAlignment.Left;
         ZIndex = 1;
         Parent = Inner;
-    });
-
-    local TitleAccent = Library:Create('Frame', {
-        BackgroundColor3 = Library.AccentColor;
-        BorderSizePixel = 0;
-        Position = UDim2.new(0, 7, 0, 23);
-        Size = UDim2.new(1, -14, 0, 2);
-        ZIndex = 3;
-        Parent = Inner;
-    });
-
-    Library:AddToRegistry(TitleAccent, {
-        BackgroundColor3 = 'AccentColor';
     });
 
     local MainSectionOuter = Library:Create('Frame', {
@@ -3040,11 +3003,6 @@ function Library:CreateWindow(...)
         Size = UDim2.new(1, -16, 1, -33);
         ZIndex = 1;
         Parent = Inner;
-    });
-
-    Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 6);
-        Parent = MainSectionOuter;
     });
 
     Library:AddToRegistry(MainSectionOuter, {
@@ -3060,11 +3018,6 @@ function Library:CreateWindow(...)
         Size = UDim2.new(1, 0, 1, 0);
         ZIndex = 1;
         Parent = MainSectionOuter;
-    });
-
-    Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 5);
-        Parent = MainSectionInner;
     });
 
     Library:AddToRegistry(MainSectionInner, {
@@ -3095,12 +3048,6 @@ function Library:CreateWindow(...)
         Parent = MainSectionInner;
     });
 
-    Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 5);
-        Parent = TabContainer;
-    });
-    -- end of window surface polish
-    
 
     Library:AddToRegistry(TabContainer, {
         BackgroundColor3 = 'MainColor';
@@ -3125,11 +3072,6 @@ function Library:CreateWindow(...)
             Size = UDim2.new(0, TabButtonWidth + 8 + 4, 1, 0);
             ZIndex = 1;
             Parent = TabArea;
-        });
-
-        Library:Create('UICorner', {
-            CornerRadius = UDim.new(0, 4);
-            Parent = TabButton;
         });
 
         Library:AddToRegistry(TabButton, {
@@ -3252,11 +3194,6 @@ function Library:CreateWindow(...)
                 Parent = Info.Side == 1 and LeftSide or RightSide;
             });
 
-            Library:Create('UICorner', {
-                CornerRadius = UDim.new(0, 5);
-                Parent = BoxOuter;
-            });
-
             Library:AddToRegistry(BoxOuter, {
                 BackgroundColor3 = 'BackgroundColor';
                 BorderColor3 = 'OutlineColor';
@@ -3270,11 +3207,6 @@ function Library:CreateWindow(...)
                 Position = UDim2.new(0, 1, 0, 1);
                 ZIndex = 4;
                 Parent = BoxOuter;
-            });
-
-            Library:Create('UICorner', {
-                CornerRadius = UDim.new(0, 4);
-                Parent = BoxInner;
             });
 
             Library:AddToRegistry(BoxInner, {
