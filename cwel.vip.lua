@@ -29,15 +29,17 @@ local Library = {
 
     HudRegistry = {};
 
-    FontColor = Color3.fromRGB(255, 255, 255);
-    MainColor = Color3.fromRGB(28, 28, 28);
-    BackgroundColor = Color3.fromRGB(20, 20, 20);
-    AccentColor = Color3.fromRGB(0, 85, 255);
-    OutlineColor = Color3.fromRGB(50, 50, 50);
-    RiskColor = Color3.fromRGB(255, 50, 50),
+    -- start of understated linoria customization
+    FontColor = Color3.fromRGB(238, 238, 238);
+    MainColor = Color3.fromRGB(31, 31, 33);
+    BackgroundColor = Color3.fromRGB(22, 22, 24);
+    AccentColor = Color3.fromRGB(112, 107, 181);
+    OutlineColor = Color3.fromRGB(58, 58, 62);
+    RiskColor = Color3.fromRGB(220, 92, 92),
 
     Black = Color3.new(0, 0, 0);
-    Font = Enum.Font.Code,
+    Font = Enum.Font.SourceSansSemibold,
+    -- end of understated linoria customization
 
     OpenedFrames = {};
     DependencyBoxes = {};
@@ -2944,7 +2946,7 @@ function Library:CreateWindow(...)
     end
 
     if type(Config.Title) ~= 'string' then Config.Title = 'No title' end
-    if type(Config.TabPadding) ~= 'number' then Config.TabPadding = 0 end
+    if type(Config.TabPadding) ~= 'number' then Config.TabPadding = 4 end
     if type(Config.MenuFadeTime) ~= 'number' then Config.MenuFadeTime = 0.2 end
 
     if typeof(Config.Position) ~= 'UDim2' then Config.Position = UDim2.fromOffset(175, 50) end
@@ -2987,9 +2989,12 @@ function Library:CreateWindow(...)
         BorderColor3 = 'AccentColor';
     });
 
+    local WindowTitleWidth = Library:GetTextBounds(Config.Title, Library.Font, 15) + 14
+
     local WindowLabel = Library:CreateLabel({
         Position = UDim2.new(0, 7, 0, 0);
-        Size = UDim2.new(0, 0, 0, 25);
+        Size = UDim2.new(0, WindowTitleWidth, 0, 25);
+        TextSize = 15;
         Text = Config.Title or '';
         TextXAlignment = Enum.TextXAlignment.Left;
         ZIndex = 1;
