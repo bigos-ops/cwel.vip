@@ -357,7 +357,7 @@ Library.AccentColorDark = Library:GetDarkerColor(Library.AccentColor);
 -- Safely return the vertical pixel height of a GUI child, or 0 for non-gui/UI objects.
 function Library:GetGuiObjectHeight(Obj)
     if not Obj then return 0 end
-    if not Obj:IsA or not Obj:IsA('GuiObject') then return 0 end
+    if not (typeof(Obj) == "Instance" and Obj:IsA('GuiObject')) then return 0 end
     if not Obj.Visible then return 0 end
     -- Protect against instances that don't expose Size (eg UICorner, UIStroke)
     local ok, s = pcall(function() return Obj.Size end)
