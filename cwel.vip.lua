@@ -3721,10 +3721,11 @@ end;
 Players.PlayerAdded:Connect(OnPlayerChange);
 Players.PlayerRemoving:Connect(OnPlayerChange);
 
--- Backwards compatibility: some callers expect `Library:Load`.
+-- boii.
 function Library:Load(...)
     return Library:CreateWindow(...)
 end
 
 getgenv().Library = Library
 return Library
+--executor is shit and ts wont work im crine
