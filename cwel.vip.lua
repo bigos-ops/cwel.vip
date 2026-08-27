@@ -3812,6 +3812,43 @@ function Library:CreateWindow(...)
         Parent = PreviewCanvas;
     });
 
+    local Preview = {
+        Frame = PreviewOuter;
+        Inner = PreviewInner;
+        Box = PreviewBox;
+        Name = PreviewName;
+        Distance = PreviewDistance;
+        Health = HealthBack;
+        Parts = BodyParts;
+        Accent = PreviewRule;
+    };
+
+    function Preview:SetVisible(Visible)
+        self.Frame.Visible = Visible and Outer.Visible;
+    end;
+
+    function Preview:SetAccentColor(Color)
+        self.Inner.BorderColor3 = Color;
+        self.Box.BorderColor3 = Color;
+        self.Accent.BackgroundColor3 = Color;
+        self.Name.TextColor3 = Color;
+    end;
+
+    function Preview:SetNameVisible(Visible)
+        self.Name.Visible = Visible;
+        self.Distance.Visible = Visible;
+    end;
+
+    function Preview:SetHealthVisible(Visible)
+        self.Health.Visible = Visible;
+    end;
+
+    function Preview:SetBoxVisible(Visible)
+        self.Box.Visible = Visible;
+    end;
+
+    Window.ESPPreview = Preview;
+
     local function PositionPreview()
         local WindowPosition = Outer.AbsolutePosition;
         local WindowSize = Outer.AbsoluteSize;
