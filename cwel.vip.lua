@@ -30,14 +30,15 @@ local Library = {
     HudRegistry = {};
 
     FontColor = Color3.fromRGB(255, 255, 255);
-    MainColor = Color3.fromRGB(28, 28, 28);
-    BackgroundColor = Color3.fromRGB(20, 20, 20);
-    AccentColor = Color3.fromRGB(0, 85, 255);
-    OutlineColor = Color3.fromRGB(50, 50, 50);
-    RiskColor = Color3.fromRGB(255, 50, 50),
+    -- Updated palette: slightly brighter main, deeper background, stronger accent
+    MainColor = Color3.fromRGB(40, 40, 45);
+    BackgroundColor = Color3.fromRGB(18, 18, 20);
+    AccentColor = Color3.fromRGB(0, 150, 255);
+    OutlineColor = Color3.fromRGB(30, 30, 35);
+    RiskColor = Color3.fromRGB(255, 80, 80),
 
     Black = Color3.new(0, 0, 0);
-    Font = Enum.Font.Code,
+    Font = Enum.Font.Gotham,
 
     OpenedFrames = {};
     DependencyBoxes = {};
@@ -128,6 +129,30 @@ function Library:Create(Class, Properties)
     for Property, Value in next, Properties do
         _Instance[Property] = Value;
     end;
+
+    -- Add subtle rounded corners and strokes to most gui objects for a modern Linoria-like look
+    if typeof(_Instance) == 'Instance' and _Instance:IsA and _Instance:IsA('GuiObject') then
+        -- UICorner
+        if not _Instance:FindFirstChildOfClass('UICorner') then
+            local ok, corner = pcall(function()
+                local c = Instance.new('UICorner')
+                c.CornerRadius = UDim.new(0, 6)
+                c.Parent = _Instance
+                return c
+            end)
+        end
+
+        -- UIStroke for subtle border (don't override existing strokes)
+        if not _Instance:FindFirstChildOfClass('UIStroke') then
+            pcall(function()
+                local s = Instance.new('UIStroke')
+                s.Thickness = 1
+                s.Color = Library.OutlineColor
+                s.Transparency = 0.75
+                s.Parent = _Instance
+            end)
+        end
+    end
 
     return _Instance;
 end;
