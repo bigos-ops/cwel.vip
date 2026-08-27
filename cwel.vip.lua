@@ -9,10 +9,14 @@ local RenderStepped = RunService.RenderStepped;
 local LocalPlayer = Players.LocalPlayer;
 local Mouse = LocalPlayer:GetMouse();
 
-local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
+-- start of GUI protection bootstrap
+local ProtectGui = type(protectgui) == 'function' and protectgui
+    or (syn and type(syn.protect_gui) == 'function' and syn.protect_gui)
+    or function() end;
 
 local ScreenGui = Instance.new('ScreenGui');
 ProtectGui(ScreenGui);
+-- end of GUI protection bootstrap
 
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
 ScreenGui.Parent = CoreGui;
