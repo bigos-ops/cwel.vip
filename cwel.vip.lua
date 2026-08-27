@@ -37,7 +37,7 @@ local Library = {
     RiskColor = Color3.fromRGB(255, 50, 50),
 
     Black = Color3.new(0, 0, 0);
-    Font = Enum.Font.Gotham,
+    Font = Enum.Font.Code,
 
     -- start of spacing constants
     Padding = 8;
@@ -413,6 +413,19 @@ function Library:GiveSignal(Signal)
     table.insert(Library.Signals, Signal)
 end
 
+-- start of unbind keybind
+function Library:UnbindKeybind(Index)
+    local KeyPicker = Options[Index];
+    
+    if KeyPicker and KeyPicker.Type == 'KeyPicker' then
+        KeyPicker:Unbind();
+        return true;
+    end
+    
+    return false;
+end
+-- end of unbind keybind
+
 function Library:Unload()
     -- Unload all of the signals
     for Idx = #Library.Signals, 1, -1 do
@@ -458,6 +471,40 @@ function Library:CreateTheme(ThemeName, Colors)
     Library.Themes[ThemeName] = Colors;
 end
 -- end of theme system functions
+
+-- start of section organization
+function Library:CreateSectionGroup(Container, Name)
+    local SectionGroup = {
+        Elements = {};
+        Name = Name;
+        Visible = true;
+    };
+
+    function SectionGroup:Add(Element)
+        table.insert(SectionGroup.Elements, Element);
+        return Element;
+    end
+
+    function SectionGroup:SetVisible(Visible)
+        SectionGroup.Visible = Visible;
+        for _, Element in next, SectionGroup.Elements do
+            if Element.Visible ~= nil then
+                Element.Visible = Visible;
+            end;
+        end;
+    end
+
+    function SectionGroup:Show()
+        SectionGroup:SetVisible(true);
+    end
+
+    function SectionGroup:Hide()
+        SectionGroup:SetVisible(false);
+    end
+
+    return SectionGroup;
+end
+-- end of section organization
 
 -- start of icon support functions
 function Library:AddIcon(UIElement, IconId)
@@ -1310,6 +1357,18 @@ do
             ModeButtons[Mode]:Select();
             KeyPicker:Update();
         end;
+
+        -- start of keybind unbind
+        function KeyPicker:Unbind()
+            DisplayLabel.Text = 'None';
+            KeyPicker.Value = 'None';
+            KeyPicker.Toggled = false;
+            KeyPicker:Update();
+            Library:SafeCallback(KeyPicker.ChangedCallback, 'None')
+            Library:SafeCallback(KeyPicker.Changed, 'None')
+            Library:AttemptSave();
+        end
+        -- end of keybind unbind
 
         function KeyPicker:OnClick(Callback)
             KeyPicker.Clicked = Callback
@@ -2949,6 +3008,76 @@ function Library:SetWatermark(Text)
     Library.WatermarkText.Text = Text;
 end;
 
+-- start of status footer
+function Library:SetStatusFooter(Text)
+    if not Library.StatusFooter then
+        Library.StatusFooter = Library:CreateLabel({
+            Position = UDim2.new(0, 8, 1, -18);
+            Size = UDim2.new(1, -16, 0, 12);
+            TextSize = 10;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            Text = Text;
+            ZIndex = 100;
+            Parent = Library.ScreenGui;
+        }, true);
+    else
+        Library.StatusFooter.Text = Text;
+    end
+end;
+-- end of status footer
+
+-- start of window minimize
+function Library:AddMinimizeButton(Window)
+    if not Window or not Window.Size then
+        return warn('AddMinimizeButton: Invalid window object');
+    end
+
+    local IsMinimized = false;
+    local OriginalSize = Window.Size;
+
+    local MinimizeBtn = Library:Create('TextButton', {
+        BackgroundTransparency = 1;
+        BorderSizePixel = 0;
+        Font = Library.Font;
+        TextColor3 = Library.FontColor;
+        TextSize = 11;
+        Text = '_';
+        Size = UDim2.fromOffset(14, 14);
+        Position = UDim2.new(1, -34, 0, 3);
+        ZIndex = Window.ZIndex + 1;
+        Parent = Window.Parent:FindFirstChild('TitleBar') or Window;
+    });
+
+    Library:AddToRegistry(MinimizeBtn, {
+        TextColor3 = 'FontColor';
+    });
+
+    MinimizeBtn.MouseButton1Click:Connect(function()
+        IsMinimized = not IsMinimized;
+
+        if IsMinimized then
+            Window.Size = UDim2.new(Window.Size.X.Scale, Window.Size.X.Offset, 0, 25);
+            for _, Child in next, Window:GetChildren() do
+                if Child ~= MinimizeBtn and not Child:IsA('UIStroke') and not Child:IsA('Frame') then
+                    Child.Visible = false;
+                end;
+            end;
+            MinimizeBtn.Text = '+';
+        else
+            Window.Size = OriginalSize;
+            for _, Child in next, Window:GetChildren() do
+                if Child ~= MinimizeBtn and not Child:IsA('UIStroke') then
+                    Child.Visible = true;
+                end;
+            end;
+            MinimizeBtn.Text = '_';
+        end;
+    end);
+
+    return MinimizeBtn;
+end;
+-- end of window minimize
+
 function Library:Notify(Text, Time)
     local XSize, YSize = Library:GetTextBounds(Text, Library.Font, 14);
 
@@ -3342,6 +3471,53 @@ function Library:CreateWindow(...)
                 ZIndex = 5;
                 Parent = BoxInner;
             });
+
+            -- start of collapsible groupbox
+            Groupbox.IsCollapsed = false;
+
+            local CollapseButton = Library:Create('TextButton', {
+                BackgroundTransparency = 1;
+                BorderSizePixel = 0;
+                Font = Library.Font;
+                TextColor3 = Library.FontColor;
+                TextSize = 12;
+                Text = '−';
+                Size = UDim2.fromOffset(14, 14);
+                Position = UDim2.new(1, -18, 0, 2);
+                ZIndex = 6;
+                Parent = BoxInner;
+            });
+
+            Library:AddToRegistry(CollapseButton, {
+                TextColor3 = 'FontColor';
+            });
+
+            function Groupbox:Collapse()
+                Groupbox.IsCollapsed = true;
+                Container.Visible = false;
+                BoxOuter.Size = UDim2.new(1, 0, 0, 22);
+                CollapseButton.Text = '+';
+            end;
+
+            function Groupbox:Expand()
+                Groupbox.IsCollapsed = false;
+                Container.Visible = true;
+                Groupbox:Resize();
+                CollapseButton.Text = '−';
+            end;
+
+            function Groupbox:ToggleCollapse()
+                if Groupbox.IsCollapsed then
+                    Groupbox:Expand();
+                else
+                    Groupbox:Collapse();
+                end;
+            end;
+
+            CollapseButton.MouseButton1Click:Connect(function()
+                Groupbox:ToggleCollapse();
+            end);
+            -- end of collapsible groupbox
 
             local Container = Library:Create('Frame', {
                 BackgroundTransparency = 1;
