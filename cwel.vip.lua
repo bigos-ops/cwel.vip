@@ -6,22 +6,15 @@ local Players = game:GetService('Players');
 local RunService = game:GetService('RunService')
 local TweenService = game:GetService('TweenService');
 local RenderStepped = RunService.RenderStepped;
-
 local LocalPlayer = Players.LocalPlayer;
-if not LocalPlayer then
-    LocalPlayer = Players.PlayerAdded and Players.PlayerAdded:Wait() or nil
-end
-
-local Mouse = nil
-if LocalPlayer and typeof(LocalPlayer.GetMouse) == 'function' then
-    local ok, m = pcall(function() return LocalPlayer:GetMouse() end)
-    if ok then Mouse = m end
-end
+local Mouse = LocalPlayer:GetMouse();
 
 local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 
 local ScreenGui = Instance.new('ScreenGui');
-pcall(ProtectGui, ScreenGui);
+if type(ProtectGui) == 'function' then
+    ProtectGui(ScreenGui);
+end
 
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
 ScreenGui.Parent = CoreGui;
