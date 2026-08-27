@@ -20,6 +20,18 @@ ScreenGui.Parent = CoreGui;
 local Toggles = {};
 local Options = {};
 
+local function GetPreferredFont()
+    local success, font = pcall(function()
+        return Font.fromName('Tahoma', Enum.FontWeight.Semibold, Enum.FontStyle.Normal)
+    end)
+
+    if success and font then
+        return font
+    end
+
+    return Enum.Font.SourceSansSemibold
+end
+
 getgenv().Toggles = Toggles;
 getgenv().Options = Options;
 
@@ -39,9 +51,9 @@ local Library = {
     RiskColor = Color3.fromRGB(239, 83, 80),
 
     Black = Color3.new(0, 0, 0);
-    Font = Enum.Font.SourceSansSemibold,
+    Font = GetPreferredFont(),
     -- Default corner radius (px) for a rounded modern look. Set to 0 to disable.
-    DefaultRadius = 6,
+    DefaultRadius = 0,
 
     OpenedFrames = {};
     DependencyBoxes = {};
@@ -146,7 +158,8 @@ function Library:Create(Class, Properties)
     end
 
     if (className == 'Frame' or className == 'ImageLabel' or className == 'TextButton') and not Properties.NoStroke then
-        Library:Create('UIStroke', { Color = Library.OutlineColor, Thickness = 1, Transparency = 0.6, Parent = _Instance })
+        -- Make default outlines invisible to achieve a sharp, flat UI look
+        Library:Create('UIStroke', { Color = Library.OutlineColor, Thickness = 1, Transparency = 1, Parent = _Instance })
     end
 
     return _Instance
@@ -335,6 +348,20 @@ function Library:GetDarkerColor(Color)
     return Color3.fromHSV(H, S, V / 1.5);
 end;
 Library.AccentColorDark = Library:GetDarkerColor(Library.AccentColor);
+
+-- Safely return the vertical pixel height of a GUI child, or 0 for non-gui/UI objects.
+function Library:GetGuiObjectHeight(Obj)
+    if not Obj then return 0 end
+    if not Obj:IsA or not Obj:IsA('GuiObject') then return 0 end
+    if not Obj.Visible then return 0 end
+    -- Protect against instances that don't expose Size (eg UICorner, UIStroke)
+    local ok, s = pcall(function() return Obj.Size end)
+    if not ok or not s then return 0 end
+    if s and s.Y and s.Y.Offset then
+        return s.Y.Offset
+    end
+    return 0
+end;
 
 function Library:AddToRegistry(Instance, Properties, IsHud)
     local Idx = #Library.Registry + 1;
@@ -2213,9 +2240,7 @@ do
         end
 
         for _, Element in next, Container:GetChildren() do
-            if Element:IsA('GuiObject') then
-                RelativeOffset = RelativeOffset + Element.Size.Y.Offset;
-            end;
+            RelativeOffset = RelativeOffset + Library:GetGuiObjectHeight(Element);
         end;
 
         local DropdownOuter = Library:Create('Frame', {
@@ -2385,7 +2410,7 @@ do
             local Buttons = {};
 
             for _, Element in next, Scrolling:GetChildren() do
-                if Element:IsA('GuiObject') then
+                if not Element:IsA('UIListLayout') then
                     Element:Destroy();
                 end;
             end;
@@ -3106,10 +3131,14 @@ function Library:CreateWindow(...)
 
         local TabButtonWidth = Library:GetTextBounds(Name, Library.Font, 16);
 
+        -- Increase horizontal padding so each tab has more space
+        local ExtraTabPadding = 20
+
         local TabButton = Library:Create('Frame', {
             BackgroundColor3 = Library.BackgroundColor;
             BorderColor3 = Library.OutlineColor;
-            Size = UDim2.new(0, TabButtonWidth + 8 + 4, 1, 0);
+            BorderSizePixel = 0; -- remove default 1px border for sharp look
+            Size = UDim2.new(0, TabButtonWidth + ExtraTabPadding, 1, 0);
             ZIndex = 1;
             Parent = TabArea;
         });
@@ -3131,7 +3160,8 @@ function Library:CreateWindow(...)
             BackgroundColor3 = Library.MainColor;
             BorderSizePixel = 0;
             Position = UDim2.new(0, 0, 1, 0);
-            Size = UDim2.new(1, 0, 0, 1);
+            -- make underline slightly thicker for a cleaner appearance
+            Size = UDim2.new(1, 0, 0, 2);
             BackgroundTransparency = 1;
             ZIndex = 3;
             Parent = TabButton;
@@ -3291,14 +3321,19 @@ function Library:CreateWindow(...)
 
             function Groupbox:Resize()
                 local Size = 0;
+                local Layout = Groupbox.Container:FindFirstChildOfClass('UIListLayout');
 
-                for _, Element in next, Groupbox.Container:GetChildren() do
-                    if Element:IsA('UIListLayout') then
-                        -- skip layout objects
-                    else
-                        -- only consider GuiObjects that have a Visible property (avoid UIStroke etc)
-                        if Element:IsA('GuiObject') and Element.Visible then
-                            Size = Size + (Element.Size and Element.Size.Y and Element.Size.Y.Offset or 0);
+                if Layout and Layout.AbsoluteContentSize then
+                    Size = Layout.AbsoluteContentSize.Y;
+                else
+                    for _, Element in next, Groupbox.Container:GetChildren() do
+                        if Element:IsA('UIListLayout') then
+                            -- skip layout objects
+                        else
+                            -- only consider GuiObjects that have a Visible property (avoid UIStroke etc)
+                            if Element:IsA('GuiObject') and Element.Visible then
+                                Size = Size + (Element.Size and Element.Size.Y and Element.Size.Y.Offset or 0);
+                            end;
                         end;
                     end;
                 end;
@@ -3477,7 +3512,7 @@ function Library:CreateWindow(...)
                     end;
 
                     for _, Button in next, TabboxButtons:GetChildren() do
-                        if Button:IsA('GuiObject') then
+                        if not Button:IsA('UIListLayout') then
                             Button.Size = UDim2.new(1 / TabCount, 0, 1, 0);
                         end;
                     end;
@@ -3487,13 +3522,18 @@ function Library:CreateWindow(...)
                     end;
 
                     local Size = 0;
+                    local Layout = Container:FindFirstChildOfClass('UIListLayout');
 
-                    for _, Element in next, Tab.Container:GetChildren() do
-                        if Element:IsA('UIListLayout') then
-                            -- skip layout objects
-                        else
-                            if Element:IsA('GuiObject') and Element.Visible then
-                                Size = Size + (Element.Size and Element.Size.Y and Element.Size.Y.Offset or 0);
+                    if Layout and Layout.AbsoluteContentSize then
+                        Size = Layout.AbsoluteContentSize.Y;
+                    else
+                        for _, Element in next, Tab.Container:GetChildren() do
+                            if Element:IsA('UIListLayout') then
+                                -- skip layout objects
+                            else
+                                if Element:IsA('GuiObject') and Element.Visible then
+                                    Size = Size + (Element.Size and Element.Size.Y and Element.Size.Y.Offset or 0);
+                                end;
                             end;
                         end;
                     end;
