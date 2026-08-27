@@ -1017,7 +1017,7 @@ do
 
         Options[Idx] = ColorPicker;
 
-        return self;
+        return ColorPicker;
     end;
 
     function Funcs:AddKeyPicker(Idx, Info)
