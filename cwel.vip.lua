@@ -43,17 +43,18 @@ local Library = {
 
     FontColor = Color3.fromRGB(255, 255, 255);
     -- Visual style: updated for a modern rounded UI
-    FontColor = Color3.fromRGB(235, 239, 241);
-    MainColor = Color3.fromRGB(36, 40, 44);
-    BackgroundColor = Color3.fromRGB(28, 30, 34);
-    AccentColor = Color3.fromRGB(0, 150, 136); -- teal accent
-    OutlineColor = Color3.fromRGB(60, 66, 72);
+    FontColor = Color3.fromRGB(230, 230, 230);
+    MainColor = Color3.fromRGB(34, 37, 43);
+    BackgroundColor = Color3.fromRGB(22, 22, 26);
+    AccentColor = Color3.fromRGB(0, 170, 255); -- Linoria-like blue accent
+    OutlineColor = Color3.fromRGB(18, 18, 20);
+    HoverColor = Color3.fromRGB(46, 49, 55);
     RiskColor = Color3.fromRGB(239, 83, 80),
 
     Black = Color3.new(0, 0, 0);
     Font = GetPreferredFont(),
     -- Default corner radius (px) for a rounded modern look. Set to 0 to disable.
-    DefaultRadius = 0,
+    DefaultRadius = 6,
 
     OpenedFrames = {};
     DependencyBoxes = {};
@@ -158,8 +159,8 @@ function Library:Create(Class, Properties)
     end
 
     if (className == 'Frame' or className == 'ImageLabel' or className == 'TextButton') and not Properties.NoStroke then
-        -- Make default outlines invisible to achieve a sharp, flat UI look
-        Library:Create('UIStroke', { Color = Library.OutlineColor, Thickness = 1, Transparency = 1, Parent = _Instance })
+        -- Subtle outline for Linoria-like appearance
+        Library:Create('UIStroke', { Color = Library.OutlineColor, Thickness = 1, Transparency = 0.6, Parent = _Instance })
     end
 
     return _Instance
@@ -3157,7 +3158,7 @@ function Library:CreateWindow(...)
         });
 
         local Blocker = Library:Create('Frame', {
-            BackgroundColor3 = Library.MainColor;
+            BackgroundColor3 = Library.AccentColor;
             BorderSizePixel = 0;
             Position = UDim2.new(0, 0, 1, 0);
             -- make underline slightly thicker for a cleaner appearance
@@ -3168,8 +3169,21 @@ function Library:CreateWindow(...)
         });
 
         Library:AddToRegistry(Blocker, {
-            BackgroundColor3 = 'MainColor';
+            BackgroundColor3 = 'AccentColor';
         });
+
+        -- Hover effect: subtle background change when not active
+        TabButton.MouseEnter:Connect(function()
+            if not TabFrame.Visible then
+                TabButton.BackgroundColor3 = Library.HoverColor;
+            end
+        end)
+
+        TabButton.MouseLeave:Connect(function()
+            if not TabFrame.Visible then
+                TabButton.BackgroundColor3 = Library.BackgroundColor;
+            end
+        end)
 
         local TabFrame = Library:Create('Frame', {
             Name = 'TabFrame',
