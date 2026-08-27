@@ -11,62 +11,11 @@ local Mouse = LocalPlayer:GetMouse();
 
 local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 
--- start of tahoma font support
--- Windows XP used Tahoma. Roblox's Font.new() needs a font-family JSON, not a
--- raw .ttf, so we download the ttf and generate a family file that points at it.
--- Falls back to Arial (closest built-in match to the XP look) if unsupported.
-local FALLBACK_FONT = Enum.Font.Arial;
-
-local function GetTahomaFont()
-    local FontUrl = 'https://raw.githubusercontent.com/sametexe001/luas/main/fonts/windows-xp-tahoma.ttf'
-    local FontFile = 'cwel.vip.tahoma.ttf'
-    local FamilyFile = 'cwel.vip.tahoma.json'
-    local AssetLoader = getcustomasset or getsynasset
-
-    if not (writefile and isfile and AssetLoader) then
-        return FALLBACK_FONT
-    end
-
-    if not isfile(FontFile) then
-        local Success, Data = pcall(function()
-            return game:HttpGet(FontUrl)
-        end)
-
-        if not Success or type(Data) ~= 'string' or #Data < 100 then
-            return FALLBACK_FONT
-        end
-
-        writefile(FontFile, Data)
-    end
-
-    local Ok, TtfAsset = pcall(AssetLoader, FontFile)
-    if not Ok or type(TtfAsset) ~= 'string' then
-        return FALLBACK_FONT
-    end
-
-    local Family = string.format(
-        '{"name":"Tahoma","faces":[{"name":"Regular","weight":400,"style":"normal","assetId":"%s"},' ..
-        '{"name":"Bold","weight":700,"style":"normal","assetId":"%s"}]}',
-        TtfAsset, TtfAsset
-    )
-
-    local WroteFamily = pcall(writefile, FamilyFile, Family)
-    if not WroteFamily then
-        return FALLBACK_FONT
-    end
-
-    local FamilyOk, FamilyAsset = pcall(AssetLoader, FamilyFile)
-    if not FamilyOk or type(FamilyAsset) ~= 'string' then
-        return FALLBACK_FONT
-    end
-
-    local Built, Result = pcall(function()
-        return Font.new(FamilyAsset, Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-    end)
-
-    return Built and Result or FALLBACK_FONT
-end
--- end of tahoma font support
+-- start of ui font
+-- Built-in Roblox font used across the whole menu. Verdana reads close to the
+-- classic Tahoma/XP look without needing a custom asset download.
+local UI_FONT = Enum.Font.Verdana;
+-- end of ui font
 
 local ScreenGui = Instance.new('ScreenGui');
 ProtectGui(ScreenGui);
@@ -95,8 +44,7 @@ local Library = {
     RiskColor = Color3.fromRGB(220, 92, 92),
 
     Black = Color3.new(0, 0, 0);
-    Font = Enum.Font.SourceSansSemibold,
-    FontFace = GetTahomaFont(),
+    Font = UI_FONT,
     -- end of understated linoria customization
 
     OpenedFrames = {};
@@ -206,15 +154,11 @@ end;
 function Library:CreateLabel(Properties, IsHud)
     local _Instance = Library:Create('TextLabel', {
         BackgroundTransparency = 1;
-        Font = Enum.Font.SourceSansSemibold;
+        Font = UI_FONT;
         TextColor3 = Library.FontColor;
         TextSize = 16;
         TextStrokeTransparency = 0;
     });
-
-    if Library.FontFace then
-        _Instance.FontFace = Library.FontFace;
-    end;
 
     Library:ApplyTextStroke(_Instance);
 
@@ -652,7 +596,7 @@ do
             BackgroundTransparency = 1;
             Position = UDim2.new(0, 5, 0, 0);
             Size = UDim2.new(1, -5, 1, 0);
-            Font = Enum.Font.SourceSansSemibold;
+            Font = UI_FONT;
             PlaceholderColor3 = Color3.fromRGB(190, 190, 190);
             PlaceholderText = 'Hex color',
             Text = '#FFFFFF',
@@ -663,10 +607,6 @@ do
             ZIndex = 20,
             Parent = HueBoxInner;
         });
-
-        if Library.FontFace then
-            HueBox.FontFace = Library.FontFace;
-        end;
 
         Library:ApplyTextStroke(HueBox);
 
@@ -1779,7 +1719,7 @@ do
             Position = UDim2.fromOffset(0, 0),
             Size = UDim2.fromScale(5, 1),
 
-            Font = Enum.Font.SourceSansSemibold;
+            Font = UI_FONT;
             PlaceholderColor3 = Color3.fromRGB(190, 190, 190);
             PlaceholderText = Info.Placeholder or '';
 
@@ -1792,10 +1732,6 @@ do
             ZIndex = 7;
             Parent = Container;
         });
-
-        if Library.FontFace then
-            Box.FontFace = Library.FontFace;
-        end;
 
         Library:ApplyTextStroke(Box);
 
@@ -3743,9 +3679,10 @@ function Library:CreateWindow(...)
         BorderColor3 = 'AccentColor';
     });
 
+    -- Title + accent rule, mirroring the main window header.
     local PreviewTitle = Library:CreateLabel({
-        Position = UDim2.fromOffset(7, 3);
-        Size = UDim2.new(1, -14, 0, 18);
+        Position = UDim2.fromOffset(7, 0);
+        Size = UDim2.new(1, -14, 0, 25);
         Text = 'ESP Preview';
         TextSize = 15;
         TextXAlignment = Enum.TextXAlignment.Left;
@@ -3756,7 +3693,7 @@ function Library:CreateWindow(...)
     local PreviewRule = Library:Create('Frame', {
         BackgroundColor3 = Library.AccentColor;
         BorderSizePixel = 0;
-        Position = UDim2.fromOffset(7, 22);
+        Position = UDim2.fromOffset(7, 24);
         Size = UDim2.new(1, -14, 0, 1);
         ZIndex = PREVIEW_Z + 2;
         Parent = PreviewInner;
@@ -3766,33 +3703,100 @@ function Library:CreateWindow(...)
         BackgroundColor3 = 'AccentColor';
     });
 
-    -- Linoria-style sunken panel: outline frame + darker background inside.
-    local PreviewCanvasOuter = Library:Create('Frame', {
+    -- Sunken main section, same layering the window uses.
+    local PreviewSectionOuter = Library:Create('Frame', {
         BackgroundColor3 = Library.BackgroundColor;
         BorderColor3 = Library.OutlineColor;
-        BorderMode = Enum.BorderMode.Inset;
-        Position = UDim2.fromOffset(7, 28);
-        Size = UDim2.new(1, -14, 1, -35);
+        Position = UDim2.fromOffset(8, 25);
+        Size = UDim2.new(1, -16, 1, -33);
         ZIndex = PREVIEW_Z + 2;
         Parent = PreviewInner;
     });
 
-    Library:AddToRegistry(PreviewCanvasOuter, {
+    Library:AddToRegistry(PreviewSectionOuter, {
         BackgroundColor3 = 'BackgroundColor';
         BorderColor3 = 'OutlineColor';
     });
 
-    local PreviewCanvas = Library:Create('Frame', {
+    local PreviewSectionInner = Library:Create('Frame', {
         BackgroundColor3 = Library.BackgroundColor;
-        BorderSizePixel = 0;
+        BorderColor3 = Library.Black;
+        BorderMode = Enum.BorderMode.Inset;
+        Size = UDim2.new(1, 0, 1, 0);
+        ZIndex = PREVIEW_Z + 3;
+        Parent = PreviewSectionOuter;
+    });
+
+    Library:AddToRegistry(PreviewSectionInner, {
+        BackgroundColor3 = 'BackgroundColor';
+        BorderColor3 = 'Black';
+    });
+
+    -- Groupbox shell with the accent highlight bar, like Tab:AddGroupbox.
+    local PreviewBoxOuter = Library:Create('Frame', {
+        BackgroundColor3 = Library.BackgroundColor;
+        BorderColor3 = Library.OutlineColor;
+        BorderMode = Enum.BorderMode.Inset;
+        Position = UDim2.fromOffset(8, 8);
+        Size = UDim2.new(1, -16, 1, -16);
+        ZIndex = PREVIEW_Z + 3;
+        Parent = PreviewSectionInner;
+    });
+
+    Library:AddToRegistry(PreviewBoxOuter, {
+        BackgroundColor3 = 'BackgroundColor';
+        BorderColor3 = 'OutlineColor';
+    });
+
+    local PreviewBoxInner = Library:Create('Frame', {
+        BackgroundColor3 = Library.BackgroundColor;
+        BorderColor3 = Library.Black;
         Position = UDim2.fromOffset(1, 1);
         Size = UDim2.new(1, -2, 1, -2);
-        ZIndex = PREVIEW_Z + 3;
-        Parent = PreviewCanvasOuter;
+        ZIndex = PREVIEW_Z + 4;
+        Parent = PreviewBoxOuter;
+    });
+
+    Library:AddToRegistry(PreviewBoxInner, {
+        BackgroundColor3 = 'BackgroundColor';
+        BorderColor3 = 'Black';
+    });
+
+    local PreviewHighlight = Library:Create('Frame', {
+        BackgroundColor3 = Library.AccentColor;
+        BorderSizePixel = 0;
+        Size = UDim2.new(1, 0, 0, 2);
+        ZIndex = PREVIEW_Z + 5;
+        Parent = PreviewBoxInner;
+    });
+
+    Library:AddToRegistry(PreviewHighlight, {
+        BackgroundColor3 = 'AccentColor';
+    });
+
+    Library:CreateLabel({
+        Position = UDim2.fromOffset(4, 2);
+        Size = UDim2.new(1, -8, 0, 18);
+        Text = 'Player';
+        TextSize = 14;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        ZIndex = PREVIEW_Z + 5;
+        Parent = PreviewBoxInner;
+    });
+
+    local PreviewCanvas = Library:Create('Frame', {
+        BackgroundColor3 = Library.MainColor;
+        BorderColor3 = Library.OutlineColor;
+        BorderMode = Enum.BorderMode.Inset;
+        Position = UDim2.fromOffset(4, 20);
+        Size = UDim2.new(1, -8, 1, -24);
+        ZIndex = PREVIEW_Z + 5;
+        Parent = PreviewBoxInner;
     });
 
     Library:AddToRegistry(PreviewCanvas, {
-        BackgroundColor3 = 'BackgroundColor';
+        BackgroundColor3 = 'MainColor';
+        BorderColor3 = 'OutlineColor';
     });
 
     -- Blocky rig: head, torso, two arms, two legs.
@@ -3805,7 +3809,7 @@ function Library:CreateWindow(...)
             BorderSizePixel = 1;
             Position = Position;
             Size = Size;
-            ZIndex = PREVIEW_Z + 4;
+            ZIndex = PREVIEW_Z + 6;
             Parent = PreviewCanvas;
         });
 
@@ -3817,21 +3821,21 @@ function Library:CreateWindow(...)
         PreviewParts[Name] = Part;
     end;
 
-    AddPreviewPart('Head', UDim2.fromOffset(84, 46), UDim2.fromOffset(34, 28));
-    AddPreviewPart('Torso', UDim2.fromOffset(76, 78), UDim2.fromOffset(50, 74));
-    AddPreviewPart('LeftArm', UDim2.fromOffset(54, 80), UDim2.fromOffset(18, 68));
-    AddPreviewPart('RightArm', UDim2.fromOffset(130, 80), UDim2.fromOffset(18, 68));
-    AddPreviewPart('LeftLeg', UDim2.fromOffset(78, 156), UDim2.fromOffset(21, 80));
-    AddPreviewPart('RightLeg', UDim2.fromOffset(103, 156), UDim2.fromOffset(21, 80));
+    AddPreviewPart('Head', UDim2.fromOffset(74, 40), UDim2.fromOffset(34, 28));
+    AddPreviewPart('Torso', UDim2.fromOffset(66, 72), UDim2.fromOffset(50, 74));
+    AddPreviewPart('LeftArm', UDim2.fromOffset(46, 74), UDim2.fromOffset(18, 68));
+    AddPreviewPart('RightArm', UDim2.fromOffset(118, 74), UDim2.fromOffset(18, 68));
+    AddPreviewPart('LeftLeg', UDim2.fromOffset(68, 150), UDim2.fromOffset(21, 78));
+    AddPreviewPart('RightLeg', UDim2.fromOffset(92, 150), UDim2.fromOffset(21, 78));
 
     -- ESP overlay: box, name, distance, health bar.
     local PreviewBox = Library:Create('Frame', {
         BackgroundTransparency = 1;
         BorderColor3 = Library.AccentColor;
         BorderSizePixel = 1;
-        Position = UDim2.fromOffset(48, 42);
-        Size = UDim2.fromOffset(106, 200);
-        ZIndex = PREVIEW_Z + 5;
+        Position = UDim2.fromOffset(42, 36);
+        Size = UDim2.fromOffset(98, 196);
+        ZIndex = PREVIEW_Z + 7;
         Parent = PreviewCanvas;
     });
 
@@ -3840,12 +3844,12 @@ function Library:CreateWindow(...)
     });
 
     local PreviewName = Library:CreateLabel({
-        Position = UDim2.fromOffset(28, 24);
-        Size = UDim2.fromOffset(146, 16);
+        Position = UDim2.fromOffset(0, 17);
+        Size = UDim2.new(1, 0, 0, 16);
         Text = 'ExamplePlayer';
         TextColor3 = Library.AccentColor;
         TextSize = 14;
-        ZIndex = PREVIEW_Z + 6;
+        ZIndex = PREVIEW_Z + 8;
         Parent = PreviewCanvas;
     });
 
@@ -3854,27 +3858,27 @@ function Library:CreateWindow(...)
     });
 
     local PreviewDistance = Library:CreateLabel({
-        Position = UDim2.fromOffset(28, 244);
-        Size = UDim2.fromOffset(146, 16);
+        Position = UDim2.fromOffset(0, 234);
+        Size = UDim2.new(1, 0, 0, 16);
         Text = '[ 42m ]';
         TextColor3 = Library.FontColor;
         TextSize = 13;
-        ZIndex = PREVIEW_Z + 6;
+        ZIndex = PREVIEW_Z + 8;
         Parent = PreviewCanvas;
     });
 
     local PreviewHealth = Library:Create('Frame', {
-        BackgroundColor3 = Library.MainColor;
+        BackgroundColor3 = Library.BackgroundColor;
         BorderColor3 = Library.Black;
         BorderSizePixel = 1;
-        Position = UDim2.fromOffset(41, 42);
-        Size = UDim2.fromOffset(4, 200);
-        ZIndex = PREVIEW_Z + 5;
+        Position = UDim2.fromOffset(35, 36);
+        Size = UDim2.fromOffset(4, 196);
+        ZIndex = PREVIEW_Z + 7;
         Parent = PreviewCanvas;
     });
 
     Library:AddToRegistry(PreviewHealth, {
-        BackgroundColor3 = 'MainColor';
+        BackgroundColor3 = 'BackgroundColor';
         BorderColor3 = 'Black';
     });
 
@@ -3884,7 +3888,7 @@ function Library:CreateWindow(...)
         AnchorPoint = Vector2.new(0, 1);
         Position = UDim2.fromScale(0, 1);
         Size = UDim2.fromScale(1, 0.78);
-        ZIndex = PREVIEW_Z + 6;
+        ZIndex = PREVIEW_Z + 8;
         Parent = PreviewHealth;
     });
 
