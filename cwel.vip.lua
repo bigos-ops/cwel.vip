@@ -11,6 +11,36 @@ local Mouse = LocalPlayer:GetMouse();
 
 local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 
+-- start of tahoma font support
+local function GetTahomaFont()
+    local FontUrl = 'https://raw.githubusercontent.com/sametexe001/luas/main/fonts/windows-xp-tahoma.ttf'
+    local FontFile = 'cwel.vip.tahoma.ttf'
+    local AssetLoader = getcustomasset or getsynasset
+
+    if not (writefile and isfile and AssetLoader) then
+        return Enum.Font.SourceSansSemibold
+    end
+
+    if not isfile(FontFile) then
+        local Success, Data = pcall(function()
+            return game:HttpGet(FontUrl)
+        end)
+
+        if not Success or type(Data) ~= 'string' or #Data < 100 then
+            return Enum.Font.SourceSansSemibold
+        end
+
+        writefile(FontFile, Data)
+    end
+
+    local Success, Font = pcall(function()
+        return Font.new(AssetLoader(FontFile), Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+    end)
+
+    return Success and Font or Enum.Font.SourceSansSemibold
+end
+-- end of tahoma font support
+
 local ScreenGui = Instance.new('ScreenGui');
 ProtectGui(ScreenGui);
 
@@ -38,7 +68,7 @@ local Library = {
     RiskColor = Color3.fromRGB(220, 92, 92),
 
     Black = Color3.new(0, 0, 0);
-    Font = Enum.Font.SourceSansSemibold,
+    Font = GetTahomaFont(),
     -- end of understated linoria customization
 
     OpenedFrames = {};
@@ -3015,6 +3045,21 @@ function Library:CreateWindow(...)
         BorderColor3 = 'OutlineColor';
     });
 
+    -- start of quiet header refinement
+    local HeaderRule = Library:Create('Frame', {
+        BackgroundColor3 = Library.AccentColor;
+        BorderSizePixel = 0;
+        Position = UDim2.new(0, 8, 0, 24);
+        Size = UDim2.new(1, -16, 0, 1);
+        ZIndex = 3;
+        Parent = Inner;
+    });
+
+    Library:AddToRegistry(HeaderRule, {
+        BackgroundColor3 = 'AccentColor';
+    });
+    -- end of quiet header refinement
+
     local MainSectionInner = Library:Create('Frame', {
         BackgroundColor3 = Library.BackgroundColor;
         BorderColor3 = Color3.new(0, 0, 0);
@@ -3172,6 +3217,8 @@ function Library:CreateWindow(...)
             Blocker.BackgroundTransparency = 0;
             TabButton.BackgroundColor3 = Library.MainColor;
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'MainColor';
+            TabButtonLabel.TextColor3 = Library.AccentColor;
+            Library.RegistryMap[TabButtonLabel].Properties.TextColor3 = 'AccentColor';
             TabFrame.Visible = true;
         end;
 
@@ -3179,6 +3226,8 @@ function Library:CreateWindow(...)
             Blocker.BackgroundTransparency = 1;
             TabButton.BackgroundColor3 = Library.BackgroundColor;
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'BackgroundColor';
+            TabButtonLabel.TextColor3 = Library.FontColor;
+            Library.RegistryMap[TabButtonLabel].Properties.TextColor3 = 'FontColor';
             TabFrame.Visible = false;
         end;
 
