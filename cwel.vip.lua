@@ -29,22 +29,23 @@ local Library = {
 
     HudRegistry = {};
 
-    -- Modern color palette with improved aesthetics
-    FontColor = Color3.fromRGB(245, 245, 250);
-    MainColor = Color3.fromRGB(35, 35, 45);
-    BackgroundColor = Color3.fromRGB(25, 25, 32);
-    AccentColor = Color3.fromRGB(100, 150, 255); -- More refined blue
-    AccentColorLight = Color3.fromRGB(150, 180, 255);
-    OutlineColor = Color3.fromRGB(60, 60, 75);
+    -- Linoria-inspired palette
+    FontColor = Color3.fromRGB(225, 230, 235);
+    MainColor = Color3.fromRGB(20, 20, 22);
+    BackgroundColor = Color3.fromRGB(12, 12, 14);
+    AccentColor = Color3.fromRGB(0, 170, 255);
+    AccentColorLight = Color3.fromRGB(120, 200, 255);
+    OutlineColor = Color3.fromRGB(45, 45, 50);
     RiskColor = Color3.fromRGB(255, 80, 80),
     SuccessColor = Color3.fromRGB(100, 200, 120);
     WarningColor = Color3.fromRGB(255, 180, 80);
 
     Black = Color3.new(0, 0, 0);
-    Font = Enum.Font.GothamMedium,
+    Font = Enum.Font.GothamSemibold,
 
-    -- Corner radius for modern look
-    CornerRadius = UDim.new(0, 6);
+    -- Corner radius for Linoria-like look
+    CornerRadius = UDim.new(0, 4);
+    LeftAccentWidth = 4;
     
     OpenedFrames = {};
     DependencyBoxes = {};
@@ -3172,6 +3173,18 @@ function Library:CreateWindow(...)
         Parent = Outer;
     });
 
+    -- left accent bar (Linoria style)
+    local LeftAccent = Library:Create('Frame', {
+        BackgroundColor3 = Library.AccentColor;
+        BorderSizePixel = 0;
+        Position = UDim2.new(0, 0, 0, 0);
+        Size = UDim2.new(0, Library.LeftAccentWidth, 1, 0);
+        ZIndex = 5;
+        Parent = Inner;
+    });
+
+    Library:Create('UICorner', { CornerRadius = UDim.new(0, 3); Parent = LeftAccent; });
+
     Library:AddToRegistry(Inner, {
         BackgroundColor3 = 'MainColor';
         BorderColor3 = 'AccentColor';
@@ -3179,7 +3192,8 @@ function Library:CreateWindow(...)
 
     local WindowLabel = Library:CreateLabel({
         Position = UDim2.new(0, 7, 0, 0);
-        Size = UDim2.new(0, 0, 0, 25);
+        Size = UDim2.new(0, 0, 0, 26);
+        TextSize = 17;
         Text = Config.Title or '';
         TextXAlignment = Enum.TextXAlignment.Left;
         ZIndex = 1;
@@ -3264,6 +3278,8 @@ function Library:CreateWindow(...)
             Parent = TabArea;
         });
 
+        -- tab button rounded corner + registry
+        Library:Create('UICorner', { CornerRadius = UDim.new(0, 4); Parent = TabButton; });
         Library:AddToRegistry(TabButton, {
             BackgroundColor3 = 'BackgroundColor';
             BorderColor3 = 'OutlineColor';
@@ -3273,6 +3289,8 @@ function Library:CreateWindow(...)
             Position = UDim2.new(0, 0, 0, 0);
             Size = UDim2.new(1, 0, 1, -1);
             Text = Name;
+            TextSize = 14;
+            TextXAlignment = Enum.TextXAlignment.Center;
             ZIndex = 1;
             Parent = TabButton;
         });
