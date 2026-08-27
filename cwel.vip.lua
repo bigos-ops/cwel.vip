@@ -39,6 +39,40 @@ local Library = {
     Black = Color3.new(0, 0, 0);
     Font = Enum.Font.Gotham,
 
+    -- start of spacing constants
+    Padding = 8;
+    SmallPadding = 4;
+    LargePadding = 12;
+    -- end of spacing constants
+
+    -- start of theme system
+    Themes = {
+        Dark = {
+            FontColor = Color3.fromRGB(255, 255, 255);
+            MainColor = Color3.fromRGB(28, 28, 28);
+            BackgroundColor = Color3.fromRGB(20, 20, 20);
+            AccentColor = Color3.fromRGB(0, 85, 255);
+            OutlineColor = Color3.fromRGB(50, 50, 50);
+            RiskColor = Color3.fromRGB(255, 50, 50);
+        };
+        Light = {
+            FontColor = Color3.fromRGB(30, 30, 30);
+            MainColor = Color3.fromRGB(240, 240, 240);
+            BackgroundColor = Color3.fromRGB(250, 250, 250);
+            AccentColor = Color3.fromRGB(0, 120, 255);
+            OutlineColor = Color3.fromRGB(200, 200, 200);
+            RiskColor = Color3.fromRGB(255, 80, 80);
+        };
+    };
+    CurrentTheme = 'Dark';
+    -- end of theme system
+
+    -- start of notification queue
+    NotificationQueue = {};
+    MaxNotifications = 5;
+    NotificationDisplayTime = 3;
+    -- end of notification queue
+
     OpenedFrames = {};
     DependencyBoxes = {};
 
@@ -403,6 +437,79 @@ Library:GiveSignal(ScreenGui.DescendantRemoving:Connect(function(Instance)
         Library:RemoveFromRegistry(Instance);
     end;
 end))
+
+-- start of theme system functions
+function Library:SetTheme(ThemeName)
+    if not Library.Themes[ThemeName] then
+        return warn('Theme "' .. ThemeName .. '" does not exist');
+    end
+
+    local Theme = Library.Themes[ThemeName];
+    Library.CurrentTheme = ThemeName;
+
+    for ColorProperty, ColorValue in next, Theme do
+        Library[ColorProperty] = ColorValue;
+    end;
+
+    Library:UpdateColorsUsingRegistry();
+end
+
+function Library:CreateTheme(ThemeName, Colors)
+    Library.Themes[ThemeName] = Colors;
+end
+-- end of theme system functions
+
+-- start of icon support functions
+function Library:AddIcon(UIElement, IconId)
+    local IconLabel = Library:Create('ImageLabel', {
+        BackgroundTransparency = 1;
+        Image = 'rbxasset://textures/Cursor.png';
+        Size = UDim2.fromOffset(16, 16);
+        ZIndex = UIElement.ZIndex + 1;
+        Parent = UIElement;
+    });
+
+    if tonumber(IconId) then
+        IconLabel.Image = 'rbxassetid://' .. IconId;
+    else
+        IconLabel.Image = IconId;
+    end
+
+    return IconLabel;
+end
+-- end of icon support functions
+
+-- start of notification queue functions
+function Library:EnqueueNotification(Text, Time)
+    table.insert(Library.NotificationQueue, {
+        Text = Text;
+        Time = Time or Library.NotificationDisplayTime;
+        Timestamp = tick();
+    });
+
+    if #Library.NotificationQueue == 1 then
+        Library:ProcessNotificationQueue();
+    end
+end
+
+function Library:ProcessNotificationQueue()
+    if #Library.NotificationQueue == 0 then return end
+
+    local Current = Library.NotificationQueue[1];
+    local DisplayTime = Current.Time;
+
+    Library:Notify(Current.Text, DisplayTime);
+
+    local Connection;
+    Connection = game:GetService('RunService').Heartbeat:Connect(function()
+        if tick() - Current.Timestamp >= DisplayTime then
+            Connection:Disconnect();
+            table.remove(Library.NotificationQueue, 1);
+            Library:ProcessNotificationQueue();
+        end
+    end);
+end
+-- end of notification queue functions
 
 local BaseAddons = {};
 
