@@ -63,14 +63,14 @@ local Library = {
 
     HudRegistry = {};
 
-    -- start of understated linoria customization
-    FontColor = Color3.fromRGB(238, 238, 238);
-    InactiveFontColor = Color3.fromRGB(145, 145, 150);
-    MainColor = Color3.fromRGB(31, 31, 33);
-    BackgroundColor = Color3.fromRGB(22, 22, 24);
-    AccentColor = Color3.fromRGB(112, 107, 181);
-    OutlineColor = Color3.fromRGB(88, 78, 140); -- purple outlines
-    RiskColor = Color3.fromRGB(220, 92, 92),
+    -- start of celestial-inspired linoria customization
+    FontColor = Color3.fromRGB(255, 255, 255);
+    InactiveFontColor = Color3.fromRGB(135, 135, 135);
+    MainColor = Color3.fromRGB(21, 21, 21); -- Celestial Inline
+    BackgroundColor = Color3.fromRGB(15, 15, 15);
+    AccentColor = Color3.fromRGB(106, 191, 247);
+    OutlineColor = Color3.fromRGB(35, 35, 35);
+    RiskColor = Color3.fromRGB(255, 0, 0),
 
     -- Fill color for the ESP preview rig blocks. Kept separate from
     -- OutlineColor so recoloring outlines does not recolor the dummy body.
@@ -78,7 +78,7 @@ local Library = {
 
     Black = Color3.new(0, 0, 0);
     Font = UI_FONT,
-    -- end of understated linoria customization
+    -- end of celestial-inspired linoria customization
 
     OpenedFrames = {};
     DependencyBoxes = {};
@@ -299,14 +299,16 @@ end;
 
 -- Applies a font to every text object the library has created.
 -- Pass 'Default' (or nil) to fall back to the built-in Linoria font.
-function Library:SetFont(Name)
+function Library:SetFont(Name, Silent)
     local Face = nil;
 
     if Name and Name ~= 'Default' then
         Face = Library:BuildCustomFont(Name);
 
         if not Face then
-            Library:Notify('Failed to load font: ' .. tostring(Name), 3);
+            if not Silent and Library.Notify then
+                Library:Notify('Failed to load font: ' .. tostring(Name), 3);
+            end;
             return false;
         end;
     end;
@@ -328,6 +330,10 @@ function Library:SetFont(Name)
 
     return true;
 end;
+
+-- Celestial uses Windows XP Tahoma. Load it before any labels are created so
+-- every future CreateLabel call inherits it; Code remains the safe fallback.
+Library:SetFont('windows-xp-tahoma', true);
 -- end of custom font api
 
 function Library:MakeDraggable(Instance, Cutoff)
@@ -772,7 +778,7 @@ do
         Library:Create('UIGradient', {
             Color = ColorSequence.new({
                 ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(212, 212, 212))
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(165, 165, 165))
             });
             Rotation = 90;
             Parent = HueBoxInner;
@@ -1654,7 +1660,7 @@ do
             Library:Create('UIGradient', {
                 Color = ColorSequence.new({
                     ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(212, 212, 212))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(165, 165, 165))
                 });
                 Rotation = 90;
                 Parent = Inner;
@@ -1911,7 +1917,7 @@ do
         Library:Create('UIGradient', {
             Color = ColorSequence.new({
                 ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(212, 212, 212))
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(165, 165, 165))
             });
             Rotation = 90;
             Parent = TextBoxInner;
@@ -2102,6 +2108,15 @@ do
             BorderColor3 = 'OutlineColor';
         });
 
+        local ToggleGradient = Library:Create('UIGradient', {
+            Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(135, 135, 135))
+            });
+            Rotation = 90;
+            Parent = ToggleInner;
+        });
+
         local ToggleLabel = Library:CreateLabel({
             Size = UDim2.new(0, 216, 1, 0);
             Position = UDim2.new(1, 6, 0, 0);
@@ -2156,6 +2171,10 @@ do
 
             TweenService:Create(ToggleLabel, TOGGLE_TWEEN, {
                 TextTransparency = Toggle.Value and 0 or 0.5;
+            }):Play();
+
+            TweenService:Create(ToggleGradient, TOGGLE_TWEEN, {
+                Rotation = Toggle.Value and 90 or -90;
             }):Play();
 
             Library.RegistryMap[ToggleInner].Properties.BackgroundColor3 = Toggle.Value and 'AccentColor' or 'MainColor';
@@ -2500,7 +2519,7 @@ do
         Library:Create('UIGradient', {
             Color = ColorSequence.new({
                 ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(212, 212, 212))
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(165, 165, 165))
             });
             Rotation = 90;
             Parent = DropdownInner;
@@ -3465,7 +3484,7 @@ function Library:CreateWindow(...)
         local TabGradient = Library:Create('UIGradient', {
             Color = ColorSequence.new({
                 ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(170, 170, 170))
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(165, 165, 165))
             });
             Rotation = -90;
             Parent = TabButton;
