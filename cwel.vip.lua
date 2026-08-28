@@ -216,16 +216,12 @@ end;
 -- Built-in Roblox faces, enumerated at runtime so an invalid name can never be
 -- listed (hardcoding is how 'Verdana' slipped in and threw). Only a short
 -- curated set is exposed; Enum.Font has ~50 entries and most are novelty faces
--- that look wrong in a menu.
+-- that look wrong in a menu. Everything from Legacy onward is excluded.
 local AllowedBuiltInFonts = {
     Code = true,
-    RobotoMono = true,
     Gotham = true,
     GothamMedium = true,
     GothamBold = true,
-    SourceSans = true,
-    SourceSansSemibold = true,
-    SourceSansBold = true,
 };
 
 local BuiltInFonts = {};
