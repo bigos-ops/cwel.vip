@@ -13,9 +13,8 @@ local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 
 -- start of ui font
 -- Built-in Roblox font used across the whole menu.
--- GothamMedium is the closest built-in match to Segoe UI / Inter: geometric
--- sans-serif, tight spacing, uniform stroke weight.
-local UI_FONT = Enum.Font.GothamMedium;
+-- Code is the classic Linoria typeface.
+local UI_FONT = Enum.Font.Code;
 -- end of ui font
 
 local ScreenGui = Instance.new('ScreenGui');
@@ -41,8 +40,12 @@ local Library = {
     MainColor = Color3.fromRGB(31, 31, 33);
     BackgroundColor = Color3.fromRGB(22, 22, 24);
     AccentColor = Color3.fromRGB(112, 107, 181);
-    OutlineColor = Color3.fromRGB(64, 168, 196); -- blueish-cyan outlines
+    OutlineColor = Color3.fromRGB(88, 78, 140); -- purple outlines
     RiskColor = Color3.fromRGB(220, 92, 92),
+
+    -- Fill color for the ESP preview rig blocks. Kept separate from
+    -- OutlineColor so recoloring outlines does not recolor the dummy body.
+    PreviewBodyColor = Color3.fromRGB(150, 150, 156),
 
     Black = Color3.new(0, 0, 0);
     Font = UI_FONT,
@@ -52,6 +55,7 @@ local Library = {
     DependencyBoxes = {};
 
     Signals = {};
+    UnloadCallbacks = {};
     ScreenGui = ScreenGui;
 };
 
@@ -395,16 +399,27 @@ function Library:Unload()
         Connection:Disconnect()
     end
 
-     -- Call our unload callback, maybe to undo some hooks etc
-    if Library.OnUnload then
-        Library.OnUnload()
+    -- Run every registered unload callback (undo hooks, remove drawings, etc).
+    for Idx = 1, #Library.UnloadCallbacks do
+        local Callback = Library.UnloadCallbacks[Idx]
+        if type(Callback) == 'function' then
+            pcall(Callback)
+        end
     end
+
+    table.clear(Library.UnloadCallbacks)
 
     ScreenGui:Destroy()
 end
 
+-- Registers a callback to run on Library:Unload().
+-- Supports multiple consumers; calling this never replaces the method itself.
 function Library:OnUnload(Callback)
-    Library.OnUnload = Callback
+    if type(Callback) ~= 'function' then
+        return
+    end
+
+    table.insert(Library.UnloadCallbacks, Callback)
 end
 
 Library:GiveSignal(ScreenGui.DescendantRemoving:Connect(function(Instance)
@@ -3826,7 +3841,7 @@ function Library:CreateWindow(...)
     local function AddPreviewPart(Name, Position, Size)
         local Part = Library:Create('Frame', {
             Name = Name;
-            BackgroundColor3 = Library.OutlineColor;
+            BackgroundColor3 = Library.PreviewBodyColor;
             BorderColor3 = Library.Black;
             BorderSizePixel = 1;
             Position = Position;
@@ -3836,7 +3851,7 @@ function Library:CreateWindow(...)
         });
 
         Library:AddToRegistry(Part, {
-            BackgroundColor3 = 'OutlineColor';
+            BackgroundColor3 = 'PreviewBodyColor';
             BorderColor3 = 'Black';
         });
 
