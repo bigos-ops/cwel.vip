@@ -15,6 +15,34 @@ local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 -- Built-in Roblox font used across the whole menu.
 -- Code is the classic Linoria typeface.
 local UI_FONT = Enum.Font.Code;
+
+-- Downloadable custom fonts, selectable from the UI Settings tab.
+-- Roblox's Font.new() needs a font-family JSON, so we fetch the .ttf and
+-- generate a family file that points at it.
+local FONT_FOLDER = 'cwel.vip/Utilities';
+
+local CustomFonts = {
+    ['windows-xp-tahoma'] = {
+        file_name = { 'windowsXPTahoma.ttf', 'windowsXPTahoma.json' };
+        url = 'https://raw.githubusercontent.com/sametexe001/luas/main/fonts/windows-xp-tahoma.ttf';
+    };
+    ['proggy-square'] = {
+        file_name = { 'proggySquare.ttf', 'proggySquare.json' };
+        url = 'https://github.com/sametexe001/luas/raw/refs/heads/main/fonts/proggy-square.ttf';
+    };
+    ['proggy-clean'] = {
+        file_name = { 'proggyClean.ttf', 'proggyClean.json' };
+        url = 'https://github.com/sametexe001/luas/raw/refs/heads/main/fonts/proggy-clean.ttf';
+    };
+    ['proggy-tiny'] = {
+        file_name = { 'proggyTiny.ttf', 'proggyTiny.json' };
+        url = 'https://github.com/sametexe001/luas/raw/refs/heads/main/fonts/proggy-tiny.ttf';
+    };
+    ['minecraftia'] = {
+        file_name = { 'minecraftia.ttf', 'minecraftia.json' };
+        url = 'https://github.com/sametexe001/luas/raw/refs/heads/main/fonts/minecraftia.ttf';
+    };
+};
 -- end of ui font
 
 local ScreenGui = Instance.new('ScreenGui');
@@ -56,6 +84,9 @@ local Library = {
 
     Signals = {};
     UnloadCallbacks = {};
+    TextObjects = {};
+    FontFace = nil;
+    FontName = 'Default';
     ScreenGui = ScreenGui;
 };
 
@@ -165,14 +196,138 @@ function Library:CreateLabel(Properties, IsHud)
         TextStrokeTransparency = 0;
     });
 
+    if Library.FontFace then
+        _Instance.FontFace = Library.FontFace;
+    end;
+
     Library:ApplyTextStroke(_Instance);
 
     Library:AddToRegistry(_Instance, {
         TextColor3 = 'FontColor';
     }, IsHud);
 
+    Library.TextObjects[_Instance] = true;
+
     return Library:Create(_Instance, Properties);
 end;
+
+-- start of custom font api
+-- Returns a sorted list of the available custom font names.
+function Library:GetFontList()
+    local List = { 'Default' };
+
+    for Name in next, CustomFonts do
+        table.insert(List, Name);
+    end;
+
+    table.sort(List, function(a, b)
+        if a == 'Default' then return true end;
+        if b == 'Default' then return false end;
+        return a < b;
+    end);
+
+    return List;
+end;
+
+-- Downloads (once) and builds a Font object for the given font name.
+-- Returns nil when the executor cannot load custom assets.
+function Library:BuildCustomFont(Name)
+    local Entry = CustomFonts[Name];
+    if not Entry then
+        return nil;
+    end;
+
+    local AssetLoader = getcustomasset or getsynasset;
+    if not (writefile and isfile and AssetLoader) then
+        return nil;
+    end;
+
+    if isfolder and makefolder then
+        local Parts = string.split(FONT_FOLDER, '/');
+        for Idx = 1, #Parts do
+            local Path = table.concat(Parts, '/', 1, Idx);
+            if not isfolder(Path) then
+                makefolder(Path);
+            end;
+        end;
+    end;
+
+    local TtfPath = FONT_FOLDER .. '/' .. Entry.file_name[1];
+    local JsonPath = FONT_FOLDER .. '/' .. Entry.file_name[2];
+
+    if not isfile(TtfPath) then
+        local Ok, Data = pcall(function()
+            return game:HttpGet(Entry.url);
+        end);
+
+        if not Ok or type(Data) ~= 'string' or #Data < 100 then
+            return nil;
+        end;
+
+        writefile(TtfPath, Data);
+    end;
+
+    local AssetOk, TtfAsset = pcall(AssetLoader, TtfPath);
+    if not AssetOk or type(TtfAsset) ~= 'string' then
+        return nil;
+    end;
+
+    if not isfile(JsonPath) then
+        local Family = string.format(
+            '{"name":"%s","faces":[{"name":"Regular","weight":400,"style":"normal","assetId":"%s"},' ..
+            '{"name":"Bold","weight":700,"style":"normal","assetId":"%s"}]}',
+            Name, TtfAsset, TtfAsset
+        );
+
+        if not pcall(writefile, JsonPath, Family) then
+            return nil;
+        end;
+    end;
+
+    local FamilyOk, FamilyAsset = pcall(AssetLoader, JsonPath);
+    if not FamilyOk or type(FamilyAsset) ~= 'string' then
+        return nil;
+    end;
+
+    local BuiltOk, Result = pcall(function()
+        return Font.new(FamilyAsset, Enum.FontWeight.Regular, Enum.FontStyle.Normal);
+    end);
+
+    return BuiltOk and Result or nil;
+end;
+
+-- Applies a font to every text object the library has created.
+-- Pass 'Default' (or nil) to fall back to the built-in Linoria font.
+function Library:SetFont(Name)
+    local Face = nil;
+
+    if Name and Name ~= 'Default' then
+        Face = Library:BuildCustomFont(Name);
+
+        if not Face then
+            Library:Notify('Failed to load font: ' .. tostring(Name), 3);
+            return false;
+        end;
+    end;
+
+    Library.FontFace = Face;
+    Library.FontName = Name or 'Default';
+
+    for Object in next, Library.TextObjects do
+        if Object.Parent then
+            if Face then
+                Object.FontFace = Face;
+            else
+                Object.Font = UI_FONT;
+            end;
+        else
+            Library.TextObjects[Object] = nil;
+        end;
+    end;
+
+    return true;
+end;
+-- end of custom font api
 
 function Library:MakeDraggable(Instance, Cutoff)
     Instance.Active = true;
@@ -623,6 +778,12 @@ do
             ZIndex = 20,
             Parent = HueBoxInner;
         });
+
+        if Library.FontFace then
+            HueBox.FontFace = Library.FontFace;
+        end;
+
+        Library.TextObjects[HueBox] = true;
 
         Library:ApplyTextStroke(HueBox);
 
@@ -1748,6 +1909,12 @@ do
             ZIndex = 7;
             Parent = Container;
         });
+
+        if Library.FontFace then
+            Box.FontFace = Library.FontFace;
+        end;
+
+        Library.TextObjects[Box] = true;
 
         Library:ApplyTextStroke(Box);
 
@@ -3067,10 +3234,13 @@ function Library:CreateWindow(...)
         BackgroundColor3 = 'BackgroundColor';
     });
 
+    -- Taller tab strip so tab buttons get more vertical room.
+    local TAB_HEIGHT = 30;
+
     local TabArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
         Position = UDim2.new(0, 8, 0, 8);
-        Size = UDim2.new(1, -16, 0, 21);
+        Size = UDim2.new(1, -16, 0, TAB_HEIGHT);
         ZIndex = 1;
         Parent = MainSectionInner;
     });
@@ -3085,8 +3255,8 @@ function Library:CreateWindow(...)
     local TabContainer = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
         BorderColor3 = Library.OutlineColor;
-        Position = UDim2.new(0, 8, 0, 30);
-        Size = UDim2.new(1, -16, 1, -38);
+        Position = UDim2.new(0, 8, 0, 8 + TAB_HEIGHT + 1);
+        Size = UDim2.new(1, -16, 1, -(8 + TAB_HEIGHT + 1) - 8);
         ZIndex = 2;
         Parent = MainSectionInner;
     });
@@ -3112,7 +3282,7 @@ function Library:CreateWindow(...)
         local TabButton = Library:Create('Frame', {
             BackgroundColor3 = Library.BackgroundColor;
             BorderColor3 = Library.OutlineColor;
-            Size = UDim2.new(0, TabButtonWidth + 8 + 4, 1, 0);
+            Size = UDim2.new(0, TabButtonWidth + 24, 1, 0);
             ZIndex = 1;
             Parent = TabArea;
         });
@@ -3176,7 +3346,7 @@ function Library:CreateWindow(...)
             BackgroundTransparency = 1;
             BorderSizePixel = 0;
             Position = UDim2.new(0, 8 - 1, 0, 8 - 1);
-            Size = UDim2.new(0.5, -12 + 2, 0, 507 + 2);
+            Size = UDim2.new(0.5, -12 + 2, 1, -16 + 2);
             CanvasSize = UDim2.new(0, 0, 0, 0);
             BottomImage = '';
             TopImage = '';
@@ -3189,7 +3359,7 @@ function Library:CreateWindow(...)
             BackgroundTransparency = 1;
             BorderSizePixel = 0;
             Position = UDim2.new(0.5, 4 + 1, 0, 8 - 1);
-            Size = UDim2.new(0.5, -12 + 2, 0, 507 + 2);
+            Size = UDim2.new(0.5, -12 + 2, 1, -16 + 2);
             CanvasSize = UDim2.new(0, 0, 0, 0);
             BottomImage = '';
             TopImage = '';
