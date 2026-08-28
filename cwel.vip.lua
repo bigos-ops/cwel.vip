@@ -1,4 +1,4 @@
-local InputService = game:GetService('UserInputService');
+\local InputService = game:GetService('UserInputService');
 local TextService = game:GetService('TextService');
 local CoreGui = game:GetService('CoreGui');
 local Teams = game:GetService('Teams');
@@ -1576,10 +1576,13 @@ do
             local Y = select(2, Library:GetTextBounds(Text, Library.Font, 14, Vector2.new(TextLabel.AbsoluteSize.X, math.huge)))
             TextLabel.Size = UDim2.new(1, -4, 0, Y)
         else
+            -- Right-aligned so addons (keypickers / colorpickers) attached to a
+            -- label land at the end of the row instead of next to the text.
             Library:Create('UIListLayout', {
                 Padding = UDim.new(0, 4);
                 FillDirection = Enum.FillDirection.Horizontal;
                 HorizontalAlignment = Enum.HorizontalAlignment.Right;
+                VerticalAlignment = Enum.VerticalAlignment.Center;
                 SortOrder = Enum.SortOrder.LayoutOrder;
                 Parent = TextLabel;
             });
@@ -2132,6 +2135,7 @@ do
             Padding = UDim.new(0, 4);
             FillDirection = Enum.FillDirection.Horizontal;
             HorizontalAlignment = Enum.HorizontalAlignment.Right;
+            VerticalAlignment = Enum.VerticalAlignment.Center;
             SortOrder = Enum.SortOrder.LayoutOrder;
             Parent = ToggleLabel;
         });
@@ -2142,6 +2146,29 @@ do
             ZIndex = 8;
             Parent = ToggleOuter;
         });
+
+        -- start of dynamic toggle width
+        -- The label hosts a right-aligned UIListLayout, which is what parks
+        -- addons (keypickers / colorpickers) at the end of the row. Both the
+        -- label and the hover region were hardcoded (216px / 170px), so on a
+        -- wider window they stopped short and the keybind sat mid-row.
+        local function SyncToggleWidth()
+            local Available = Container.AbsoluteSize.X;
+
+            if Available <= 0 then
+                return;
+            end;
+
+            -- Container left -> label left is the 13px box plus the 6px gap.
+            local LabelWidth = math.max(60, Available - 19 - 4);
+
+            ToggleLabel.Size = UDim2.new(0, LabelWidth, 1, 0);
+            ToggleRegion.Size = UDim2.new(0, LabelWidth + 19, 1, 0);
+        end;
+
+        Container:GetPropertyChangedSignal('AbsoluteSize'):Connect(SyncToggleWidth);
+        task.defer(SyncToggleWidth);
+        -- end of dynamic toggle width
 
         Library:OnHighlight(ToggleRegion, ToggleOuter,
             { BorderColor3 = 'AccentColor' },
@@ -2430,6 +2457,23 @@ do
                 Library:AttemptSave();
             end;
         end);
+
+        -- start of dynamic slider width
+        -- MaxSize used to be hardcoded to 232px, so on a wider window the fill
+        -- topped out well before the end of the track. Track the real inner
+        -- width instead so the bar always reaches 100%.
+        local function SyncSliderWidth()
+            local Width = SliderInner.AbsoluteSize.X;
+
+            if Width > 0 and Width ~= Slider.MaxSize then
+                Slider.MaxSize = Width;
+                Slider:Display();
+            end;
+        end;
+
+        SliderInner:GetPropertyChangedSignal('AbsoluteSize'):Connect(SyncSliderWidth);
+        task.defer(SyncSliderWidth);
+        -- end of dynamic slider width
 
         Slider:Display();
         Groupbox:AddBlank(Info.BlankSize or 6);
