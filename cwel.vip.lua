@@ -2051,6 +2051,7 @@ do
             Position = UDim2.new(1, 6, 0, 0);
             TextSize = 14;
             Text = Info.Text;
+            TextTransparency = 0.5;
             TextXAlignment = Enum.TextXAlignment.Left;
             ZIndex = 6;
             Parent = ToggleInner;
@@ -2084,9 +2085,22 @@ do
             Library:AddToolTip(Info.Tooltip, ToggleRegion)
         end
 
+        -- Inspired by celestial.club: the indicator eases into the accent color
+        -- and inactive labels sit dimmed so enabled options stand out.
+        local TOGGLE_TWEEN = TweenInfo.new(0.13, Enum.EasingStyle.Sine, Enum.EasingDirection.Out);
+
         function Toggle:Display()
-            ToggleInner.BackgroundColor3 = Toggle.Value and Library.AccentColor or Library.MainColor;
-            ToggleInner.BorderColor3 = Toggle.Value and Library.AccentColorDark or Library.OutlineColor;
+            local Background = Toggle.Value and Library.AccentColor or Library.MainColor;
+            local Border = Toggle.Value and Library.AccentColorDark or Library.OutlineColor;
+
+            TweenService:Create(ToggleInner, TOGGLE_TWEEN, {
+                BackgroundColor3 = Background;
+                BorderColor3 = Border;
+            }):Play();
+
+            TweenService:Create(ToggleLabel, TOGGLE_TWEEN, {
+                TextTransparency = Toggle.Value and 0 or 0.5;
+            }):Play();
 
             Library.RegistryMap[ToggleInner].Properties.BackgroundColor3 = Toggle.Value and 'AccentColor' or 'MainColor';
             Library.RegistryMap[ToggleInner].Properties.BorderColor3 = Toggle.Value and 'AccentColorDark' or 'OutlineColor';
@@ -3110,16 +3124,35 @@ function Library:Notify(Text, Time)
         BackgroundColor3 = 'AccentColor';
     }, true);
 
-    pcall(NotifyOuter.TweenSize, NotifyOuter, UDim2.new(0, XSize + 8 + 4, 0, YSize), 'Out', 'Quad', 0.4, true);
+    -- Inspired by celestial.club: the toast expands first, then the text fades
+    -- in, so notifications feel like they open rather than pop.
+    NotifyLabel.TextTransparency = 1;
 
     task.spawn(function()
-        wait(Time or 5);
+        local Expand = TweenService:Create(NotifyOuter, TweenInfo.new(0.265, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
+            Size = UDim2.new(0, XSize + 8 + 4, 0, YSize);
+        });
+        Expand:Play();
+        Expand.Completed:Wait();
 
-        pcall(NotifyOuter.TweenSize, NotifyOuter, UDim2.new(0, 0, 0, YSize), 'Out', 'Quad', 0.4, true);
+        local FadeIn = TweenService:Create(NotifyLabel, TweenInfo.new(0.26, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
+            TextTransparency = 0;
+        });
+        FadeIn:Play();
 
-        wait(0.4);
+        task.delay(Time or 5, function()
+            TweenService:Create(NotifyLabel, TweenInfo.new(0.16, Enum.EasingStyle.Quad), {
+                TextTransparency = 1;
+            }):Play();
 
-        NotifyOuter:Destroy();
+            local Collapse = TweenService:Create(NotifyOuter, TweenInfo.new(0.26, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
+                Size = UDim2.new(0, 0, 0, YSize);
+            });
+            Collapse:Play();
+            Collapse.Completed:Wait();
+
+            NotifyOuter:Destroy();
+        end);
     end);
 end;
 
@@ -3235,7 +3268,7 @@ function Library:CreateWindow(...)
     });
 
     -- Taller tab strip so tab buttons get more vertical room.
-    local TAB_HEIGHT = 30;
+    local TAB_HEIGHT = 25;
 
     local TabArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
@@ -3462,15 +3495,29 @@ function Library:CreateWindow(...)
                 BackgroundColor3 = 'AccentColor';
             });
 
+            -- Inspired by celestial.club: the groupbox title sits on the accent
+            -- line with a background chip, so the header reads as a notch in it.
             local GroupboxLabel = Library:CreateLabel({
-                Size = UDim2.new(1, 0, 0, 18);
-                Position = UDim2.new(0, 4, 0, 2);
+                Size = UDim2.new(0, 0, 0, 15);
+                Position = UDim2.new(0, 8, 0, -6);
                 TextSize = 14;
                 Text = Info.Name;
-                TextXAlignment = Enum.TextXAlignment.Left;
-                ZIndex = 5;
+                TextXAlignment = Enum.TextXAlignment.Center;
+                BackgroundColor3 = Library.BackgroundColor;
+                BackgroundTransparency = 0;
+                ZIndex = 6;
                 Parent = BoxInner;
             });
+
+            Library:AddToRegistry(GroupboxLabel, {
+                BackgroundColor3 = 'BackgroundColor';
+            });
+
+            task.defer(function()
+                if GroupboxLabel.Parent then
+                    GroupboxLabel.Size = UDim2.new(0, GroupboxLabel.TextBounds.X + 14, 0, 15);
+                end;
+            end);
 
             local Container = Library:Create('Frame', {
                 BackgroundTransparency = 1;
@@ -4095,6 +4142,65 @@ function Library:CreateWindow(...)
     AddBoxEdge(UDim2.fromOffset(0, 0), UDim2.new(0, 1, 1, 0));   -- left
     AddBoxEdge(UDim2.new(1, -1, 0, 0), UDim2.new(0, 1, 1, 0));   -- right
 
+    -- Corner box: four L-shaped brackets instead of a full outline.
+    local CornerLength = 12;
+    local PreviewCornerBox = Library:Create('Frame', {
+        BackgroundTransparency = 1;
+        BorderSizePixel = 0;
+        Position = UDim2.fromOffset(BoxX, BoxY);
+        Size = UDim2.fromOffset(BoxW, BoxH);
+        Visible = false;
+        ZIndex = PREVIEW_Z + 7;
+        Parent = PreviewCanvas;
+    });
+
+    local PreviewCornerEdges = {};
+    local function AddCornerEdge(Position, Size)
+        local Edge = Library:Create('Frame', {
+            BackgroundColor3 = Library.AccentColor;
+            BorderSizePixel = 0;
+            Position = Position;
+            Size = Size;
+            ZIndex = PREVIEW_Z + 8;
+            Parent = PreviewCornerBox;
+        });
+
+        Library:AddToRegistry(Edge, {
+            BackgroundColor3 = 'AccentColor';
+        });
+
+        table.insert(PreviewCornerEdges, Edge);
+    end;
+
+    -- top-left
+    AddCornerEdge(UDim2.fromOffset(0, 0), UDim2.fromOffset(CornerLength, 1));
+    AddCornerEdge(UDim2.fromOffset(0, 0), UDim2.fromOffset(1, CornerLength));
+    -- top-right
+    AddCornerEdge(UDim2.new(1, -CornerLength, 0, 0), UDim2.fromOffset(CornerLength, 1));
+    AddCornerEdge(UDim2.new(1, -1, 0, 0), UDim2.fromOffset(1, CornerLength));
+    -- bottom-left
+    AddCornerEdge(UDim2.new(0, 0, 1, -1), UDim2.fromOffset(CornerLength, 1));
+    AddCornerEdge(UDim2.new(0, 0, 1, -CornerLength), UDim2.fromOffset(1, CornerLength));
+    -- bottom-right
+    AddCornerEdge(UDim2.new(1, -CornerLength, 1, -1), UDim2.fromOffset(CornerLength, 1));
+    AddCornerEdge(UDim2.new(1, -1, 1, -CornerLength), UDim2.fromOffset(1, CornerLength));
+
+    -- Box fill: translucent accent tint inside the bounding box.
+    local PreviewBoxFill = Library:Create('Frame', {
+        BackgroundColor3 = Library.AccentColor;
+        BackgroundTransparency = 0.75;
+        BorderSizePixel = 0;
+        Position = UDim2.fromOffset(BoxX, BoxY);
+        Size = UDim2.fromOffset(BoxW, BoxH);
+        Visible = false;
+        ZIndex = PREVIEW_Z + 6;
+        Parent = PreviewCanvas;
+    });
+
+    Library:AddToRegistry(PreviewBoxFill, {
+        BackgroundColor3 = 'AccentColor';
+    });
+
     local PreviewName = Library:CreateLabel({
         Position = UDim2.fromOffset(BoxX - 40, BoxY - 17);
         Size = UDim2.fromOffset(BoxW + 80, 16);
@@ -4113,6 +4219,17 @@ function Library:CreateWindow(...)
         Position = UDim2.fromOffset(BoxX - 40, BoxY + BoxH + 2);
         Size = UDim2.fromOffset(BoxW + 80, 16);
         Text = '[ 42m ]';
+        TextColor3 = Library.FontColor;
+        TextSize = 13;
+        ZIndex = PREVIEW_Z + 8;
+        Parent = PreviewCanvas;
+    });
+
+    -- Weapon / tool text under the distance line.
+    local PreviewWeapon = Library:CreateLabel({
+        Position = UDim2.fromOffset(BoxX - 40, BoxY + BoxH + 16);
+        Size = UDim2.fromOffset(BoxW + 80, 16);
+        Text = '[ AK-47 ]';
         TextColor3 = Library.FontColor;
         TextSize = 13;
         ZIndex = PREVIEW_Z + 8;
@@ -4160,6 +4277,108 @@ function Library:CreateWindow(...)
         Parent = PreviewCanvas;
     });
 
+    -- Skeleton: thin accent lines linking the rig joints.
+    local PreviewSkeleton = Library:Create('Frame', {
+        BackgroundTransparency = 1;
+        BorderSizePixel = 0;
+        Size = UDim2.fromScale(1, 1);
+        Visible = false;
+        ZIndex = PREVIEW_Z + 7;
+        Parent = PreviewCanvas;
+    });
+
+    local PreviewSkeletonLines = {};
+    local function AddSkeletonLine(Position, Size)
+        local Line = Library:Create('Frame', {
+            BackgroundColor3 = Library.AccentColor;
+            BorderSizePixel = 0;
+            Position = Position;
+            Size = Size;
+            ZIndex = PREVIEW_Z + 8;
+            Parent = PreviewSkeleton;
+        });
+
+        Library:AddToRegistry(Line, {
+            BackgroundColor3 = 'AccentColor';
+        });
+
+        table.insert(PreviewSkeletonLines, Line);
+    end;
+
+    do
+        local SpineX = TorsoX + math.floor(TorsoW / 2);
+        local NeckY = TorsoY;
+        local HipY = TorsoY + TorsoH;
+        local ShoulderY = TorsoY + 4;
+
+        -- head -> neck, spine
+        AddSkeletonLine(UDim2.fromOffset(SpineX, RigY + HeadH), UDim2.fromOffset(1, NeckY - (RigY + HeadH)));
+        AddSkeletonLine(UDim2.fromOffset(SpineX, NeckY), UDim2.fromOffset(1, TorsoH));
+        -- shoulders
+        AddSkeletonLine(UDim2.fromOffset(TorsoX - ArmW + 8, ShoulderY), UDim2.fromOffset(TorsoW + ArmW * 2 - 16, 1));
+        -- arms
+        AddSkeletonLine(UDim2.fromOffset(TorsoX - ArmW + 8, ShoulderY), UDim2.fromOffset(1, ArmH - 4));
+        AddSkeletonLine(UDim2.fromOffset(TorsoX + TorsoW + 8, ShoulderY), UDim2.fromOffset(1, ArmH - 4));
+        -- hips
+        AddSkeletonLine(UDim2.fromOffset(TorsoX + 10, HipY), UDim2.fromOffset(TorsoW - 20, 1));
+        -- legs
+        AddSkeletonLine(UDim2.fromOffset(TorsoX + 10, HipY), UDim2.fromOffset(1, LegH));
+        AddSkeletonLine(UDim2.fromOffset(TorsoX + TorsoW - 10, HipY), UDim2.fromOffset(1, LegH));
+    end;
+
+    -- Head circle marker, drawn over the head block.
+    local PreviewHeadDot = Library:Create('Frame', {
+        BackgroundTransparency = 1;
+        BorderColor3 = Library.AccentColor;
+        BorderSizePixel = 1;
+        Position = UDim2.fromOffset(HeadX + 6, RigY + 5);
+        Size = UDim2.fromOffset(HeadW - 12, HeadH - 10);
+        Visible = false;
+        ZIndex = PREVIEW_Z + 9;
+        Parent = PreviewCanvas;
+    });
+
+    Library:Create('UICorner', {
+        CornerRadius = UDim.new(1, 0);
+        Parent = PreviewHeadDot;
+    });
+
+    Library:AddToRegistry(PreviewHeadDot, {
+        BorderColor3 = 'AccentColor';
+    });
+
+    -- Tracer: line from the bottom of the canvas to the rig's feet.
+    local PreviewTracer = Library:Create('Frame', {
+        BackgroundColor3 = Library.AccentColor;
+        BorderSizePixel = 0;
+        AnchorPoint = Vector2.new(0.5, 1);
+        Position = UDim2.new(0.5, 0, 1, 0);
+        Size = UDim2.fromOffset(1, 40);
+        Visible = false;
+        ZIndex = PREVIEW_Z + 7;
+        Parent = PreviewCanvas;
+    });
+
+    Library:AddToRegistry(PreviewTracer, {
+        BackgroundColor3 = 'AccentColor';
+    });
+
+    -- Off-screen arrow indicator, parked in the corner of the canvas.
+    local PreviewArrow = Library:CreateLabel({
+        Position = UDim2.new(1, -20, 0, 4);
+        Size = UDim2.fromOffset(16, 16);
+        Text = '^';
+        TextColor3 = Library.AccentColor;
+        TextSize = 16;
+        Visible = false;
+        ZIndex = PREVIEW_Z + 9;
+        Parent = PreviewCanvas;
+    });
+
+    Library:AddToRegistry(PreviewArrow, {
+        TextColor3 = 'AccentColor';
+    });
+
     local Preview = {};
     Preview.Visible = true;
 
@@ -4167,27 +4386,119 @@ function Library:CreateWindow(...)
         self.Visible = not not Value;
         PreviewGui.Visible = self.Visible and Outer.Visible;
     end;
+
     function Preview:SetAccentColor(Color)
         PreviewInner.BorderColor3 = Color;
         PreviewRule.BackgroundColor3 = Color;
         PreviewHighlight.BackgroundColor3 = Color;
         PreviewName.TextColor3 = Color;
         PreviewHealthFill.BackgroundColor3 = Color;
+        PreviewBoxFill.BackgroundColor3 = Color;
+        PreviewHeadDot.BorderColor3 = Color;
+        PreviewTracer.BackgroundColor3 = Color;
+        PreviewArrow.TextColor3 = Color;
 
         for _, Edge in next, PreviewBoxEdges do
             Edge.BackgroundColor3 = Color;
         end;
+
+        for _, Edge in next, PreviewCornerEdges do
+            Edge.BackgroundColor3 = Color;
+        end;
+
+        for _, Line in next, PreviewSkeletonLines do
+            Line.BackgroundColor3 = Color;
+        end;
     end;
+
     function Preview:SetNameVisible(Value)
         PreviewName.Visible = Value;
+    end;
+
+    function Preview:SetDistanceVisible(Value)
         PreviewDistance.Visible = Value;
     end;
+
     function Preview:SetHealthVisible(Value)
         PreviewHealth.Visible = Value;
         PreviewHealthText.Visible = Value;
     end;
-    function Preview:SetBoxVisible(Value)
-        PreviewBox.Visible = Value;
+
+    -- 'Full' draws the complete outline, 'Corner' draws only the brackets.
+    function Preview:SetBoxVisible(Value, Style)
+        local Corners = Style == 'Corner' or Style == 'Corners';
+
+        PreviewBox.Visible = Value and not Corners;
+        PreviewCornerBox.Visible = Value and Corners;
+    end;
+
+    function Preview:SetCornerBoxVisible(Value)
+        PreviewCornerBox.Visible = Value;
+        if Value then
+            PreviewBox.Visible = false;
+        end;
+    end;
+
+    function Preview:SetBoxFillVisible(Value)
+        PreviewBoxFill.Visible = Value;
+    end;
+
+    function Preview:SetBoxFillTransparency(Value)
+        PreviewBoxFill.BackgroundTransparency = math.clamp(tonumber(Value) or 0.75, 0, 1);
+    end;
+
+    function Preview:SetWeaponVisible(Value)
+        PreviewWeapon.Visible = Value;
+    end;
+
+    function Preview:SetWeaponText(Text)
+        PreviewWeapon.Text = tostring(Text);
+    end;
+
+    function Preview:SetSkeletonVisible(Value)
+        PreviewSkeleton.Visible = Value;
+    end;
+
+    function Preview:SetHeadDotVisible(Value)
+        PreviewHeadDot.Visible = Value;
+    end;
+
+    function Preview:SetTracerVisible(Value)
+        PreviewTracer.Visible = Value;
+    end;
+
+    function Preview:SetArrowVisible(Value)
+        PreviewArrow.Visible = Value;
+    end;
+
+    function Preview:SetChamsVisible(Value)
+        local Fill = Value and 0.55 or 1;
+
+        for _, Part in next, PreviewParts do
+            Part.BackgroundTransparency = Value and 0 or 0;
+            Part.BackgroundColor3 = Value and Library.AccentColor or Library.PreviewBodyColor;
+
+            local Reg = Library.RegistryMap[Part];
+            if Reg then
+                Reg.Properties.BackgroundColor3 = Value and 'AccentColor' or 'PreviewBodyColor';
+            end;
+        end;
+
+        PreviewBoxFill.BackgroundTransparency = Value and Fill or PreviewBoxFill.BackgroundTransparency;
+    end;
+
+    function Preview:SetNameText(Text)
+        PreviewName.Text = tostring(Text);
+    end;
+
+    function Preview:SetDistanceText(Text)
+        PreviewDistance.Text = tostring(Text);
+    end;
+
+    function Preview:SetHealth(Percent)
+        Percent = math.clamp(tonumber(Percent) or 1, 0, 1);
+        PreviewHealthFill.Size = UDim2.fromScale(1, Percent);
+        PreviewHealthText.Text = tostring(math.floor(Percent * 100));
     end;
 
     Window.ESPPreview = Preview;
