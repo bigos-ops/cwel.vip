@@ -65,6 +65,7 @@ local Library = {
 
     -- start of understated linoria customization
     FontColor = Color3.fromRGB(238, 238, 238);
+    InactiveFontColor = Color3.fromRGB(145, 145, 150);
     MainColor = Color3.fromRGB(31, 31, 33);
     BackgroundColor = Color3.fromRGB(22, 22, 24);
     AccentColor = Color3.fromRGB(112, 107, 181);
@@ -364,11 +365,25 @@ function Library:AddToolTip(InfoStr, HoverInstance)
         BorderColor3 = Library.OutlineColor,
 
         Size = UDim2.fromOffset(X + 5, Y + 4),
-        ZIndex = 100,
+        -- Above the ESP preview (900) so hover text is never covered.
+        ZIndex = 1000,
         Parent = Library.ScreenGui,
 
         Visible = false,
     })
+
+    -- Accent edge, matching the notification toasts.
+    local TooltipAccent = Library:Create('Frame', {
+        BackgroundColor3 = Library.AccentColor;
+        BorderSizePixel = 0;
+        Size = UDim2.new(1, 0, 0, 1);
+        ZIndex = Tooltip.ZIndex + 2;
+        Parent = Tooltip;
+    });
+
+    Library:AddToRegistry(TooltipAccent, {
+        BackgroundColor3 = 'AccentColor';
+    });
 
     local Label = Library:CreateLabel({
         Position = UDim2.fromOffset(3, 1),
@@ -2889,7 +2904,8 @@ do
         BackgroundTransparency = 1;
         Position = UDim2.new(0, 0, 0, 40);
         Size = UDim2.new(0, 300, 0, 200);
-        ZIndex = 100;
+        -- Above the ESP preview (900) so toasts are never covered.
+        ZIndex = 1000;
         Parent = ScreenGui;
     });
 
@@ -3051,12 +3067,14 @@ function Library:Notify(Text, Time)
 
     YSize = YSize + 7
 
+    local NOTIFY_Z = 1000;
+
     local NotifyOuter = Library:Create('Frame', {
         BorderColor3 = Color3.new(0, 0, 0);
         Position = UDim2.new(0, 100, 0, 10);
         Size = UDim2.new(0, 0, 0, YSize);
         ClipsDescendants = true;
-        ZIndex = 100;
+        ZIndex = NOTIFY_Z;
         Parent = Library.NotificationArea;
     });
 
@@ -3065,7 +3083,7 @@ function Library:Notify(Text, Time)
         BorderColor3 = Library.OutlineColor;
         BorderMode = Enum.BorderMode.Inset;
         Size = UDim2.new(1, 0, 1, 0);
-        ZIndex = 101;
+        ZIndex = NOTIFY_Z + 1;
         Parent = NotifyOuter;
     });
 
@@ -3079,7 +3097,7 @@ function Library:Notify(Text, Time)
         BorderSizePixel = 0;
         Position = UDim2.new(0, 1, 0, 1);
         Size = UDim2.new(1, -2, 1, -2);
-        ZIndex = 102;
+        ZIndex = NOTIFY_Z + 2;
         Parent = NotifyInner;
     });
 
@@ -3107,7 +3125,7 @@ function Library:Notify(Text, Time)
         Text = Text;
         TextXAlignment = Enum.TextXAlignment.Left;
         TextSize = 14;
-        ZIndex = 103;
+        ZIndex = NOTIFY_Z + 3;
         Parent = InnerFrame;
     });
 
@@ -3116,7 +3134,7 @@ function Library:Notify(Text, Time)
         BorderSizePixel = 0;
         Position = UDim2.new(0, -1, 0, -1);
         Size = UDim2.new(0, 3, 1, 2);
-        ZIndex = 104;
+        ZIndex = NOTIFY_Z + 4;
         Parent = NotifyOuter;
     });
 
@@ -3181,6 +3199,7 @@ function Library:CreateWindow(...)
 
     local Window = {
         Tabs = {};
+        TabButtons = {};
     };
 
     local Outer = Library:Create('Frame', {
@@ -3268,7 +3287,7 @@ function Library:CreateWindow(...)
     });
 
     -- Taller tab strip so tab buttons get more vertical room.
-    local TAB_HEIGHT = 25;
+    local TAB_HEIGHT = 22;
 
     local TabArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
@@ -3300,6 +3319,22 @@ function Library:CreateWindow(...)
         BorderColor3 = 'OutlineColor';
     });
 
+    local function UpdateTabSizes()
+        local Count = #Window.TabButtons;
+        if Count == 0 then
+            return;
+        end;
+
+        local Available = TabArea.AbsoluteSize.X - (Config.TabPadding * (Count - 1));
+        local Width = math.max(40, math.floor(Available / Count));
+
+        for _, Button in next, Window.TabButtons do
+            Button.Size = UDim2.new(0, Width, 1, 0);
+        end;
+    end;
+
+    TabArea:GetPropertyChangedSignal('AbsoluteSize'):Connect(UpdateTabSizes);
+
     function Window:SetWindowTitle(Title)
         WindowLabel.Text = Title;
     end;
@@ -3308,6 +3343,7 @@ function Library:CreateWindow(...)
         local Tab = {
             Groupboxes = {};
             Tabboxes = {};
+            Active = false;
         };
 
         local TabButtonWidth = Library:GetTextBounds(Name, Library.Font, 16);
@@ -3319,6 +3355,9 @@ function Library:CreateWindow(...)
             ZIndex = 1;
             Parent = TabArea;
         });
+
+        table.insert(Window.TabButtons, TabButton);
+        task.defer(UpdateTabSizes);
 
         Library:AddToRegistry(TabButton, {
             BackgroundColor3 = 'BackgroundColor';
@@ -3333,6 +3372,15 @@ function Library:CreateWindow(...)
             TextXAlignment = Enum.TextXAlignment.Center;
             TextYAlignment = Enum.TextYAlignment.Center;
             ZIndex = 1;
+            Parent = TabButton;
+        });
+
+        local TabGradient = Library:Create('UIGradient', {
+            Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(170, 170, 170))
+            });
+            Rotation = -90;
             Parent = TabButton;
         });
 
@@ -3433,6 +3481,10 @@ function Library:CreateWindow(...)
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'MainColor';
             TabButtonLabel.TextColor3 = Library.AccentColor;
             Library.RegistryMap[TabButtonLabel].Properties.TextColor3 = 'AccentColor';
+            TweenService:Create(TabGradient, TweenInfo.new(0.13, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                Rotation = 90;
+            }):Play();
+            Tab.Active = true;
             TabAccent.Visible = true;
             TabFrame.Visible = true;
         end;
@@ -3441,8 +3493,12 @@ function Library:CreateWindow(...)
             Blocker.BackgroundTransparency = 1;
             TabButton.BackgroundColor3 = Library.BackgroundColor;
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'BackgroundColor';
-            TabButtonLabel.TextColor3 = Library.FontColor;
-            Library.RegistryMap[TabButtonLabel].Properties.TextColor3 = 'FontColor';
+            TabButtonLabel.TextColor3 = Library.InactiveFontColor;
+            Library.RegistryMap[TabButtonLabel].Properties.TextColor3 = 'InactiveFontColor';
+            TweenService:Create(TabGradient, TweenInfo.new(0.13, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                Rotation = -90;
+            }):Play();
+            Tab.Active = false;
             TabAccent.Visible = false;
             TabFrame.Visible = false;
         end;
@@ -3769,6 +3825,22 @@ function Library:CreateWindow(...)
             end;
         end);
 
+        TabButton.MouseEnter:Connect(function()
+            if not Tab.Active then
+                TweenService:Create(TabButtonLabel, TweenInfo.new(0.12, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                    TextColor3 = Library.FontColor;
+                }):Play();
+            end;
+        end);
+
+        TabButton.MouseLeave:Connect(function()
+            if not Tab.Active then
+                TweenService:Create(TabButtonLabel, TweenInfo.new(0.12, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                    TextColor3 = Library.InactiveFontColor;
+                }):Play();
+            end;
+        end);
+
         -- This was the first tab added, so we show it by default.
         if #TabContainer:GetChildren() == 1 then
             Tab:ShowTab();
@@ -3903,7 +3975,9 @@ function Library:CreateWindow(...)
     -- start of library esp preview
     -- NOTE: ScreenGui uses ZIndexBehavior.Global, so every child must have a
     -- HIGHER ZIndex than its parent or the parent paints over its own contents.
-    local PREVIEW_Z = 900;
+    -- Same layer family as the menu, below popup controls (14+), tooltips and
+    -- notifications. Children peak at 11 because ScreenGui uses Global ZIndex.
+    local PREVIEW_Z = 2;
 
     local PreviewGui = Library:Create('Frame', {
         Name = 'ESPPreview';
