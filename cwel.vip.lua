@@ -42,6 +42,10 @@ local CustomFonts = {
         file_name = { 'minecraftia.ttf', 'minecraftia.json' };
         url = 'https://github.com/sametexe001/luas/raw/refs/heads/main/fonts/minecraftia.ttf';
     };
+    ['june'] = {
+        file_name = { 'june.ttf', 'june.json' };
+        url = 'https://raw.githubusercontent.com/sametexe001/luas/main/fonts/teachers-pet.ttf';
+    };
 };
 -- end of ui font
 
@@ -4471,14 +4475,14 @@ function Library:CreateWindow(...)
     end;
 
     -- Rig layout, R6-style proportions:
-    --   head  spans the full torso width, sitting directly on top of it
+    --   head  narrower than the torso and stretched taller, sitting on top
     --   arms  start at the torso top and end where the legs begin
     --   legs  split the torso width exactly, flush left and right
     local TorsoW, TorsoH = 56, 80;
     local ArmW = 18;
-    local HeadH = 30;
     local ArmH = TorsoH;                          -- arms end at the leg line
-    local HeadW = TorsoW;                         -- head touches both torso sides
+    local HeadW = math.floor(TorsoW * 0.5);       -- narrower than the torso
+    local HeadH = math.floor(HeadW * 1.15);       -- stretched slightly taller
     local LegW = math.floor(TorsoW / 2);          -- two legs fill the torso width
     local LegH = 76;
 
@@ -4492,7 +4496,7 @@ function Library:CreateWindow(...)
 
     local TorsoX = RigX + ArmW;                   -- torso sits right of the left arm
     local TorsoY = RigY + HeadH;                  -- torso starts where the head ends
-    local HeadX = TorsoX;                         -- head aligned to the torso edges
+    local HeadX = TorsoX + math.floor((TorsoW - HeadW) / 2); -- head centred on torso
     local LegsY = TorsoY + TorsoH;                -- legs start where the torso ends
 
     AddPreviewPart('Head', UDim2.fromOffset(HeadX, RigY), UDim2.fromOffset(HeadW, HeadH));
