@@ -12,9 +12,8 @@ local Mouse = LocalPlayer:GetMouse();
 local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 
 -- start of ui font
--- Built-in Roblox font used across the whole menu. Arial reads closest to the
--- classic Tahoma/XP look out of the legacy Enum.Font list.
-local UI_FONT = Enum.Font.Arial;
+-- Built-in Roblox font used across the whole menu.
+local UI_FONT = Enum.Font.Gotham;
 -- end of ui font
 
 local ScreenGui = Instance.new('ScreenGui');
