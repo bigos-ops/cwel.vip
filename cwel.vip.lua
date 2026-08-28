@@ -214,7 +214,20 @@ end;
 
 -- start of custom font api
 -- Built-in Roblox faces, enumerated at runtime so an invalid name can never be
--- listed (hardcoding is how 'Verdana' slipped in and threw).
+-- listed (hardcoding is how 'Verdana' slipped in and threw). Only a short
+-- curated set is exposed; Enum.Font has ~50 entries and most are novelty faces
+-- that look wrong in a menu.
+local AllowedBuiltInFonts = {
+    Code = true,
+    RobotoMono = true,
+    Gotham = true,
+    GothamMedium = true,
+    GothamBold = true,
+    SourceSans = true,
+    SourceSansSemibold = true,
+    SourceSansBold = true,
+};
+
 local BuiltInFonts = {};
 do
     local Ok, Items = pcall(function()
@@ -223,16 +236,15 @@ do
 
     if Ok and Items then
         for _, Item in next, Items do
-            -- Unknown is not a usable face.
-            if Item.Name ~= 'Unknown' then
+            if AllowedBuiltInFonts[Item.Name] then
                 BuiltInFonts[Item.Name] = Item;
             end;
         end;
     end;
 end;
 
--- Returns the available fonts: Default, then downloadable faces, then every
--- built-in Roblox font. Downloadables are prefixed so they group together.
+-- Returns the available fonts: Default, then downloadable faces, then the
+-- curated built-in Roblox fonts.
 function Library:GetFontList()
     local Custom, Builtin = {}, {};
 
@@ -4346,35 +4358,37 @@ function Library:CreateWindow(...)
         PreviewParts[Name] = Part;
     end;
 
-    -- Rig layout. Proportions are sized so the body fills most of the canvas
-    -- and the bounding box lands close to the panel edges, like a real ESP box
-    -- framing a player rather than a small doll floating in the middle.
-    local TorsoW, TorsoH = 54, 78;
-    local ArmW, ArmH = 18, 74;
-    local LegW, LegH = 26, 80;
-    local HeadW, HeadH = 34, 30;
-    local NeckGap = 2;                            -- small break so the head reads separately
+    -- Rig layout, R6-style proportions:
+    --   head  spans the full torso width, sitting directly on top of it
+    --   arms  start at the torso top and end where the legs begin
+    --   legs  split the torso width exactly, flush left and right
+    local TorsoW, TorsoH = 56, 80;
+    local ArmW = 18;
+    local HeadH = 30;
+    local ArmH = TorsoH;                          -- arms end at the leg line
+    local HeadW = TorsoW;                         -- head touches both torso sides
+    local LegW = math.floor(TorsoW / 2);          -- two legs fill the torso width
+    local LegH = 76;
 
     -- The preview panel is a fixed 220x330, so the canvas ends up 176x253.
     -- Centre the rig (arms included) inside it instead of using a fixed offset.
     local CanvasW, CanvasH = 176, 253;
     local RigW = TorsoW + ArmW * 2;               -- full body width (arm to arm)
-    local RigH = HeadH + NeckGap + TorsoH + LegH; -- full body height (head to feet)
+    local RigH = HeadH + TorsoH + LegH;           -- full body height (head to feet)
     local RigX = math.floor((CanvasW - RigW) / 2);
     local RigY = math.floor((CanvasH - RigH) / 2);
 
-    local TorsoX = RigX + ArmW;                       -- torso sits right of the left arm
-    local TorsoY = RigY + HeadH + NeckGap;            -- torso starts just below the head
-    local HeadX = TorsoX + math.floor((TorsoW - HeadW) / 2); -- head centred on torso
-    local LegsY = TorsoY + TorsoH;                    -- legs start where the torso ends
-    local LegGap = TorsoW - LegW * 2;                 -- leftover width splits the legs
+    local TorsoX = RigX + ArmW;                   -- torso sits right of the left arm
+    local TorsoY = RigY + HeadH;                  -- torso starts where the head ends
+    local HeadX = TorsoX;                         -- head aligned to the torso edges
+    local LegsY = TorsoY + TorsoH;                -- legs start where the torso ends
 
     AddPreviewPart('Head', UDim2.fromOffset(HeadX, RigY), UDim2.fromOffset(HeadW, HeadH));
     AddPreviewPart('Torso', UDim2.fromOffset(TorsoX, TorsoY), UDim2.fromOffset(TorsoW, TorsoH));
     AddPreviewPart('LeftArm', UDim2.fromOffset(TorsoX - ArmW, TorsoY), UDim2.fromOffset(ArmW, ArmH));
     AddPreviewPart('RightArm', UDim2.fromOffset(TorsoX + TorsoW, TorsoY), UDim2.fromOffset(ArmW, ArmH));
     AddPreviewPart('LeftLeg', UDim2.fromOffset(TorsoX, LegsY), UDim2.fromOffset(LegW, LegH));
-    AddPreviewPart('RightLeg', UDim2.fromOffset(TorsoX + LegW + LegGap, LegsY), UDim2.fromOffset(LegW, LegH));
+    AddPreviewPart('RightLeg', UDim2.fromOffset(TorsoX + TorsoW - LegW, LegsY), UDim2.fromOffset(LegW, LegH));
 
     -- Bounding box hugs the rig: arm-to-arm horizontally, head-to-feet
     -- vertically, with only a couple of pixels of breathing room.
@@ -4585,7 +4599,6 @@ function Library:CreateWindow(...)
 
     do
         local SpineX = TorsoX + math.floor(TorsoW / 2);
-        local HeadBottom = RigY + HeadH;
         local NeckY = TorsoY;
         local HipY = TorsoY + TorsoH;
         local ShoulderY = TorsoY + 5;
@@ -4593,7 +4606,7 @@ function Library:CreateWindow(...)
         local LegOffset = math.floor(LegW / 2);
 
         -- neck, then spine down the torso
-        AddSkeletonLine(UDim2.fromOffset(SpineX, HeadBottom), UDim2.fromOffset(1, NeckY - HeadBottom + 1));
+        AddSkeletonLine(UDim2.fromOffset(SpineX, RigY + HeadH), UDim2.fromOffset(1, NeckY - (RigY + HeadH) + 1));
         AddSkeletonLine(UDim2.fromOffset(SpineX, NeckY), UDim2.fromOffset(1, TorsoH));
         -- shoulder line spanning both arms
         AddSkeletonLine(UDim2.fromOffset(TorsoX - ArmW + ArmX, ShoulderY), UDim2.fromOffset(TorsoW + ArmW, 1));
@@ -4604,7 +4617,7 @@ function Library:CreateWindow(...)
         AddSkeletonLine(UDim2.fromOffset(TorsoX + LegOffset, HipY), UDim2.fromOffset(TorsoW - LegW, 1));
         -- legs, centred in each leg block
         AddSkeletonLine(UDim2.fromOffset(TorsoX + LegOffset, HipY), UDim2.fromOffset(1, LegH));
-        AddSkeletonLine(UDim2.fromOffset(TorsoX + LegW + LegGap + LegOffset, HipY), UDim2.fromOffset(1, LegH));
+        AddSkeletonLine(UDim2.fromOffset(TorsoX + TorsoW - LegW + LegOffset, HipY), UDim2.fromOffset(1, LegH));
     end;
 
     -- Head circle marker, inset inside the head block.
