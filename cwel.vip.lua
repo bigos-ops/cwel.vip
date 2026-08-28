@@ -3794,7 +3794,53 @@ function Library:CreateWindow(...)
                 Parent = Container;
             });
 
+            -- start of collapsible groupbox
+            -- Info.Collapsible adds a [-] / [+] chip on the header and lets the
+            -- title bar be clicked to fold the box down to just its header.
+            -- Info.Collapsed starts it folded.
+            Groupbox.Collapsible = Info.Collapsible == true;
+            Groupbox.Collapsed = false;
+
+            local Indicator;
+            local HeaderButton;
+
+            if Groupbox.Collapsible then
+                Indicator = Library:CreateLabel({
+                    Size = UDim2.new(0, 16, 0, 15);
+                    Position = UDim2.new(1, -24, 0, -6);
+                    TextSize = 14;
+                    Text = '-';
+                    TextXAlignment = Enum.TextXAlignment.Center;
+                    BackgroundColor3 = Library.BackgroundColor;
+                    BackgroundTransparency = 0;
+                    ZIndex = 6;
+                    Parent = BoxInner;
+                });
+
+                Library:AddToRegistry(Indicator, {
+                    BackgroundColor3 = 'BackgroundColor';
+                });
+
+                -- Invisible strip over the header row so the whole title line is
+                -- clickable, not just the text chip.
+                HeaderButton = Library:Create('TextButton', {
+                    BackgroundTransparency = 1;
+                    Text = '';
+                    AutoButtonColor = false;
+                    Position = UDim2.new(0, 0, 0, -6);
+                    Size = UDim2.new(1, 0, 0, 16);
+                    ZIndex = 7;
+                    Parent = BoxInner;
+                });
+            end;
+
             function Groupbox:Resize()
+                if Groupbox.Collapsed then
+                    -- Header height only; the accent line and title stay visible.
+                    BoxOuter.Size = UDim2.new(1, 0, 0, 12);
+                    return;
+                end;
+
                 local Size = 0;
 
                 for _, Element in next, Groupbox.Container:GetChildren() do
@@ -3806,23 +3852,93 @@ function Library:CreateWindow(...)
                 BoxOuter.Size = UDim2.new(1, 0, 0, 20 + Size + 2 + 2);
             end;
 
+            function Groupbox:SetCollapsed(Value)
+                if not Groupbox.Collapsible then
+                    return;
+                end;
+
+                Groupbox.Collapsed = not not Value;
+                Container.Visible = not Groupbox.Collapsed;
+
+                if Indicator then
+                    Indicator.Text = Groupbox.Collapsed and '+' or '-';
+                end;
+
+                Groupbox:Resize();
+            end;
+
+            function Groupbox:Toggle()
+                Groupbox:SetCollapsed(not Groupbox.Collapsed);
+            end;
+
+            if Groupbox.Collapsible then
+                HeaderButton.MouseButton1Click:Connect(function()
+                    if Library:MouseIsOverOpenedFrame() then
+                        return;
+                    end;
+
+                    Groupbox:Toggle();
+                end);
+
+                local HoverTween = TweenInfo.new(0.12, Enum.EasingStyle.Sine, Enum.EasingDirection.Out);
+
+                HeaderButton.MouseEnter:Connect(function()
+                    TweenService:Create(GroupboxLabel, HoverTween, { TextColor3 = Library.AccentColor }):Play();
+                    TweenService:Create(Indicator, HoverTween, { TextColor3 = Library.AccentColor }):Play();
+                end);
+
+                HeaderButton.MouseLeave:Connect(function()
+                    TweenService:Create(GroupboxLabel, HoverTween, { TextColor3 = Library.FontColor }):Play();
+                    TweenService:Create(Indicator, HoverTween, { TextColor3 = Library.FontColor }):Play();
+                end);
+            end;
+            -- end of collapsible groupbox
+
             Groupbox.Container = Container;
             setmetatable(Groupbox, BaseGroupbox);
 
             Groupbox:AddBlank(3);
             Groupbox:Resize();
 
+            if Groupbox.Collapsible and Info.Collapsed then
+                Groupbox:SetCollapsed(true);
+            end;
+
             Tab.Groupboxes[Info.Name] = Groupbox;
 
             return Groupbox;
         end;
 
-        function Tab:AddLeftGroupbox(Name)
-            return Tab:AddGroupbox({ Side = 1; Name = Name; });
+        -- Name may be a string, or a table of options:
+        --   { Name = 'Title', Collapsible = true, Collapsed = false }
+        local function NormalizeGroupboxInfo(Name, Side)
+            local Info = type(Name) == 'table' and Name or { Name = Name };
+            Info.Side = Side;
+            return Info;
         end;
 
-        function Tab:AddRightGroupbox(Name)
-            return Tab:AddGroupbox({ Side = 2; Name = Name; });
+        function Tab:AddLeftGroupbox(Name, Options)
+            local Info = NormalizeGroupboxInfo(Name, 1);
+
+            if type(Options) == 'table' then
+                for Key, Value in next, Options do
+                    Info[Key] = Value;
+                end;
+            end;
+
+            return Tab:AddGroupbox(Info);
+        end;
+
+        function Tab:AddRightGroupbox(Name, Options)
+            local Info = NormalizeGroupboxInfo(Name, 2);
+
+            if type(Options) == 'table' then
+                for Key, Value in next, Options do
+                    Info[Key] = Value;
+                end;
+            end;
+
+            return Tab:AddGroupbox(Info);
         end;
 
         function Tab:AddTabbox(Info)
