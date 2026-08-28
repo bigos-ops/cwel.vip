@@ -3127,6 +3127,21 @@ function Library:CreateWindow(...)
             BackgroundColor3 = 'MainColor';
         });
 
+        -- Accent strip along the top of the active tab (classic Linoria cue).
+        local TabAccent = Library:Create('Frame', {
+            BackgroundColor3 = Library.AccentColor;
+            BorderSizePixel = 0;
+            Position = UDim2.new(0, 0, 0, 0);
+            Size = UDim2.new(1, 0, 0, 1);
+            Visible = false;
+            ZIndex = 4;
+            Parent = TabButton;
+        });
+
+        Library:AddToRegistry(TabAccent, {
+            BackgroundColor3 = 'AccentColor';
+        });
+
         local TabFrame = Library:Create('Frame', {
             Name = 'TabFrame',
             BackgroundTransparency = 1;
@@ -3195,6 +3210,7 @@ function Library:CreateWindow(...)
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'MainColor';
             TabButtonLabel.TextColor3 = Library.AccentColor;
             Library.RegistryMap[TabButtonLabel].Properties.TextColor3 = 'AccentColor';
+            TabAccent.Visible = true;
             TabFrame.Visible = true;
         end;
 
@@ -3204,6 +3220,7 @@ function Library:CreateWindow(...)
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'BackgroundColor';
             TabButtonLabel.TextColor3 = Library.FontColor;
             Library.RegistryMap[TabButtonLabel].Properties.TextColor3 = 'FontColor';
+            TabAccent.Visible = false;
             TabFrame.Visible = false;
         end;
 
@@ -3847,19 +3864,39 @@ function Library:CreateWindow(...)
     local BoxH = (HeadH + TorsoH + LegH) + 8;
 
     -- ESP overlay: box, name, distance, health bar + health number.
+    -- NOTE: a Frame's BorderSizePixel is NOT drawn when BackgroundTransparency
+    -- is 1, so the outline is built from four 1px edge frames instead.
     local PreviewBox = Library:Create('Frame', {
         BackgroundTransparency = 1;
-        BorderColor3 = Library.AccentColor;
-        BorderSizePixel = 1;
+        BorderSizePixel = 0;
         Position = UDim2.fromOffset(BoxX, BoxY);
         Size = UDim2.fromOffset(BoxW, BoxH);
         ZIndex = PREVIEW_Z + 7;
         Parent = PreviewCanvas;
     });
 
-    Library:AddToRegistry(PreviewBox, {
-        BorderColor3 = 'AccentColor';
-    });
+    local PreviewBoxEdges = {};
+    local function AddBoxEdge(Position, Size)
+        local Edge = Library:Create('Frame', {
+            BackgroundColor3 = Library.AccentColor;
+            BorderSizePixel = 0;
+            Position = Position;
+            Size = Size;
+            ZIndex = PREVIEW_Z + 8;
+            Parent = PreviewBox;
+        });
+
+        Library:AddToRegistry(Edge, {
+            BackgroundColor3 = 'AccentColor';
+        });
+
+        table.insert(PreviewBoxEdges, Edge);
+    end;
+
+    AddBoxEdge(UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 1));   -- top
+    AddBoxEdge(UDim2.new(0, 0, 1, -1), UDim2.new(1, 0, 0, 1));   -- bottom
+    AddBoxEdge(UDim2.fromOffset(0, 0), UDim2.new(0, 1, 1, 0));   -- left
+    AddBoxEdge(UDim2.new(1, -1, 0, 0), UDim2.new(0, 1, 1, 0));   -- right
 
     local PreviewName = Library:CreateLabel({
         Position = UDim2.fromOffset(BoxX - 40, BoxY - 17);
@@ -3936,9 +3973,13 @@ function Library:CreateWindow(...)
     function Preview:SetAccentColor(Color)
         PreviewInner.BorderColor3 = Color;
         PreviewRule.BackgroundColor3 = Color;
-        PreviewBox.BorderColor3 = Color;
+        PreviewHighlight.BackgroundColor3 = Color;
         PreviewName.TextColor3 = Color;
         PreviewHealthFill.BackgroundColor3 = Color;
+
+        for _, Edge in next, PreviewBoxEdges do
+            Edge.BackgroundColor3 = Color;
+        end;
     end;
     function Preview:SetNameVisible(Value)
         PreviewName.Visible = Value;
