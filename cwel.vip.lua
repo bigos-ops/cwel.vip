@@ -1678,6 +1678,19 @@ do
         end
 
         local function InitEvents(Button)
+            local EFFECT_TWEEN = TweenInfo.new(0.12, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+
+            Button.Outer.MouseEnter:Connect(function()
+                if Button.Locked then return end
+                TweenService:Create(Button.Label, EFFECT_TWEEN, { TextColor3 = Library.AccentColor }):Play()
+            end)
+
+            Button.Outer.MouseLeave:Connect(function()
+                if Button.Locked then return end
+                TweenService:Create(Button.Label, EFFECT_TWEEN, { TextColor3 = Library.FontColor }):Play()
+                TweenService:Create(Button.Inner, EFFECT_TWEEN, { BackgroundColor3 = Library.MainColor }):Play()
+            end)
+
             local function WaitForEvent(event, timeout, validator)
                 local bindable = Instance.new('BindableEvent')
                 local connection = event:Once(function(...)
@@ -1710,6 +1723,16 @@ do
             Button.Outer.InputBegan:Connect(function(Input)
                 if not ValidateClick(Input) then return end
                 if Button.Locked then return end
+
+                TweenService:Create(Button.Inner, EFFECT_TWEEN, {
+                    BackgroundColor3 = Library:GetDarkerColor(Library.MainColor)
+                }):Play()
+
+                task.delay(0.1, function()
+                    if Button.Inner.Parent and not Button.Locked then
+                        TweenService:Create(Button.Inner, EFFECT_TWEEN, { BackgroundColor3 = Library.MainColor }):Play()
+                    end
+                end)
 
                 if Button.DoubleClick then
                     Library:RemoveFromRegistry(Button.Label)
@@ -1932,6 +1955,24 @@ do
         Library.TextObjects[Box] = true;
 
         Library:ApplyTextStroke(Box);
+
+        Box.Focused:Connect(function()
+            TweenService:Create(TextBoxOuter, TweenInfo.new(0.13, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                BorderColor3 = Library.AccentColor
+            }):Play()
+            TweenService:Create(InputLabel, TweenInfo.new(0.13, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                TextColor3 = Library.AccentColor
+            }):Play()
+        end)
+
+        Box.FocusLost:Connect(function()
+            TweenService:Create(TextBoxOuter, TweenInfo.new(0.13, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                BorderColor3 = Library.Black
+            }):Play()
+            TweenService:Create(InputLabel, TweenInfo.new(0.13, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                TextColor3 = Library.FontColor
+            }):Play()
+        end)
 
         function Textbox:SetValue(Text)
             if Info.MaxLength and #Text > Info.MaxLength then
@@ -2270,6 +2311,18 @@ do
             { BorderColor3 = 'AccentColor' },
             { BorderColor3 = 'Black' }
         );
+
+        SliderOuter.MouseEnter:Connect(function()
+            TweenService:Create(DisplayLabel, TweenInfo.new(0.12, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                TextColor3 = Library.AccentColor
+            }):Play()
+        end)
+
+        SliderOuter.MouseLeave:Connect(function()
+            TweenService:Create(DisplayLabel, TweenInfo.new(0.12, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                TextColor3 = Library.FontColor
+            }):Play()
+        end)
 
         if type(Info.Tooltip) == 'string' then
             Library:AddToolTip(Info.Tooltip, SliderOuter)
@@ -2709,13 +2762,23 @@ do
         function Dropdown:OpenDropdown()
             ListOuter.Visible = true;
             Library.OpenedFrames[ListOuter] = true;
-            DropdownArrow.Rotation = 180;
+            TweenService:Create(DropdownArrow, TweenInfo.new(0.13, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                Rotation = 180
+            }):Play();
+            TweenService:Create(DropdownOuter, TweenInfo.new(0.13, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                BorderColor3 = Library.AccentColor
+            }):Play();
         end;
 
         function Dropdown:CloseDropdown()
             ListOuter.Visible = false;
             Library.OpenedFrames[ListOuter] = nil;
-            DropdownArrow.Rotation = 0;
+            TweenService:Create(DropdownArrow, TweenInfo.new(0.13, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                Rotation = 0
+            }):Play();
+            TweenService:Create(DropdownOuter, TweenInfo.new(0.13, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                BorderColor3 = Library.Black
+            }):Play();
         end;
 
         function Dropdown:OnChanged(Func)
@@ -3226,6 +3289,18 @@ function Library:CreateWindow(...)
         Parent = Outer;
     });
 
+    local WindowStroke = Library:Create('UIStroke', {
+        Color = Library.AccentColor;
+        Thickness = 1;
+        LineJoinMode = Enum.LineJoinMode.Miter;
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border;
+        Parent = Outer;
+    });
+
+    Library:AddToRegistry(WindowStroke, {
+        Color = 'AccentColor';
+    });
+
     Library:AddToRegistry(Inner, {
         BackgroundColor3 = 'MainColor';
         BorderColor3 = 'AccentColor';
@@ -3311,6 +3386,18 @@ function Library:CreateWindow(...)
         Size = UDim2.new(1, -16, 1, -(8 + TAB_HEIGHT + 1) - 8);
         ZIndex = 2;
         Parent = MainSectionInner;
+    });
+
+    local TabContainerStroke = Library:Create('UIStroke', {
+        Color = Library.OutlineColor;
+        Thickness = 1;
+        LineJoinMode = Enum.LineJoinMode.Miter;
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border;
+        Parent = TabContainer;
+    });
+
+    Library:AddToRegistry(TabContainerStroke, {
+        Color = 'OutlineColor';
     });
 
 
