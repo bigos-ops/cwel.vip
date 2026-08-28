@@ -191,7 +191,7 @@ end;
 function Library:CreateLabel(Properties, IsHud)
     local _Instance = Library:Create('TextLabel', {
         BackgroundTransparency = 1;
-        Font = UI_FONT;
+        Font = Library.LegacyFont or UI_FONT;
         TextColor3 = Library.FontColor;
         TextSize = 16;
         TextStrokeTransparency = 0;
@@ -213,19 +213,49 @@ function Library:CreateLabel(Properties, IsHud)
 end;
 
 -- start of custom font api
--- Returns a sorted list of the available custom font names.
+-- Built-in Roblox faces, enumerated at runtime so an invalid name can never be
+-- listed (hardcoding is how 'Verdana' slipped in and threw).
+local BuiltInFonts = {};
+do
+    local Ok, Items = pcall(function()
+        return Enum.Font:GetEnumItems();
+    end);
+
+    if Ok and Items then
+        for _, Item in next, Items do
+            -- Unknown is not a usable face.
+            if Item.Name ~= 'Unknown' then
+                BuiltInFonts[Item.Name] = Item;
+            end;
+        end;
+    end;
+end;
+
+-- Returns the available fonts: Default, then downloadable faces, then every
+-- built-in Roblox font. Downloadables are prefixed so they group together.
 function Library:GetFontList()
-    local List = { 'Default' };
+    local Custom, Builtin = {}, {};
 
     for Name in next, CustomFonts do
+        table.insert(Custom, Name);
+    end;
+
+    for Name in next, BuiltInFonts do
+        table.insert(Builtin, Name);
+    end;
+
+    table.sort(Custom);
+    table.sort(Builtin);
+
+    local List = { 'Default' };
+
+    for _, Name in next, Custom do
         table.insert(List, Name);
     end;
 
-    table.sort(List, function(a, b)
-        if a == 'Default' then return true end;
-        if b == 'Default' then return false end;
-        return a < b;
-    end);
+    for _, Name in next, Builtin do
+        table.insert(List, Name);
+    end;
 
     return List;
 end;
@@ -298,16 +328,25 @@ function Library:BuildCustomFont(Name)
 end;
 
 -- Applies a font to every text object the library has created.
--- Pass 'Default' (or nil) to fall back to the built-in Linoria font.
+-- Accepts 'Default', a downloadable font name, or any built-in Enum.Font name.
 function Library:SetFont(Name, Silent)
-    local Face = nil;
+    local Face, Legacy = nil, UI_FONT;
 
     if Name and Name ~= 'Default' then
-        Face = Library:BuildCustomFont(Name);
+        if CustomFonts[Name] then
+            Face = Library:BuildCustomFont(Name);
 
-        if not Face then
+            if not Face then
+                if not Silent and Library.Notify then
+                    Library:Notify('Failed to load font: ' .. tostring(Name), 3);
+                end;
+                return false;
+            end;
+        elseif BuiltInFonts[Name] then
+            Legacy = BuiltInFonts[Name];
+        else
             if not Silent and Library.Notify then
-                Library:Notify('Failed to load font: ' .. tostring(Name), 3);
+                Library:Notify('Unknown font: ' .. tostring(Name), 3);
             end;
             return false;
         end;
@@ -315,13 +354,21 @@ function Library:SetFont(Name, Silent)
 
     Library.FontFace = Face;
     Library.FontName = Name or 'Default';
+    Library.LegacyFont = Legacy;
+    Library.Font = Legacy;
 
     for Object in next, Library.TextObjects do
         if Object.Parent then
+            -- Always reset the legacy face; a stale FontFace otherwise wins over
+            -- it and the built-in selection would appear to do nothing.
+            Object.Font = Legacy;
+
             if Face then
                 Object.FontFace = Face;
             else
-                Object.Font = UI_FONT;
+                pcall(function()
+                    Object.FontFace = Font.fromEnum(Legacy);
+                end);
             end;
         else
             Library.TextObjects[Object] = nil;
@@ -788,7 +835,7 @@ do
             BackgroundTransparency = 1;
             Position = UDim2.new(0, 5, 0, 0);
             Size = UDim2.new(1, -5, 1, 0);
-            Font = UI_FONT;
+            Font = Library.LegacyFont or UI_FONT;
             PlaceholderColor3 = Color3.fromRGB(190, 190, 190);
             PlaceholderText = 'Hex color',
             Text = '#FFFFFF',
@@ -1943,7 +1990,7 @@ do
             Position = UDim2.fromOffset(0, 0),
             Size = UDim2.fromScale(5, 1),
 
-            Font = UI_FONT;
+            Font = Library.LegacyFont or UI_FONT;
             PlaceholderColor3 = Color3.fromRGB(190, 190, 190);
             PlaceholderText = Info.Placeholder or '';
 
@@ -4299,37 +4346,43 @@ function Library:CreateWindow(...)
         PreviewParts[Name] = Part;
     end;
 
-    -- Rig layout (torso is the anchor; everything touches it edge-to-edge).
-    local TorsoW, TorsoH = 48, 72;
-    local ArmW, ArmH = 16, 66;
-    local LegW, LegH = 24, 72;
-    local HeadW, HeadH = 30, 26;
+    -- Rig layout. Proportions are sized so the body fills most of the canvas
+    -- and the bounding box lands close to the panel edges, like a real ESP box
+    -- framing a player rather than a small doll floating in the middle.
+    local TorsoW, TorsoH = 54, 78;
+    local ArmW, ArmH = 18, 74;
+    local LegW, LegH = 26, 80;
+    local HeadW, HeadH = 34, 30;
+    local NeckGap = 2;                            -- small break so the head reads separately
 
     -- The preview panel is a fixed 220x330, so the canvas ends up 176x253.
     -- Centre the rig (arms included) inside it instead of using a fixed offset.
     local CanvasW, CanvasH = 176, 253;
-    local RigW = TorsoW + ArmW * 2;              -- full body width (arm to arm)
-    local RigH = HeadH + TorsoH + LegH;          -- full body height (head to feet)
+    local RigW = TorsoW + ArmW * 2;               -- full body width (arm to arm)
+    local RigH = HeadH + NeckGap + TorsoH + LegH; -- full body height (head to feet)
     local RigX = math.floor((CanvasW - RigW) / 2);
     local RigY = math.floor((CanvasH - RigH) / 2);
 
-    local TorsoX = RigX + ArmW;                 -- torso sits right of the left arm
-    local TorsoY = RigY + HeadH;                -- torso starts where the head ends
-    local HeadX = TorsoX + (TorsoW - HeadW) / 2; -- head centred on torso
-    local LegsY = TorsoY + TorsoH;              -- legs start where the torso ends
+    local TorsoX = RigX + ArmW;                       -- torso sits right of the left arm
+    local TorsoY = RigY + HeadH + NeckGap;            -- torso starts just below the head
+    local HeadX = TorsoX + math.floor((TorsoW - HeadW) / 2); -- head centred on torso
+    local LegsY = TorsoY + TorsoH;                    -- legs start where the torso ends
+    local LegGap = TorsoW - LegW * 2;                 -- leftover width splits the legs
 
     AddPreviewPart('Head', UDim2.fromOffset(HeadX, RigY), UDim2.fromOffset(HeadW, HeadH));
     AddPreviewPart('Torso', UDim2.fromOffset(TorsoX, TorsoY), UDim2.fromOffset(TorsoW, TorsoH));
     AddPreviewPart('LeftArm', UDim2.fromOffset(TorsoX - ArmW, TorsoY), UDim2.fromOffset(ArmW, ArmH));
     AddPreviewPart('RightArm', UDim2.fromOffset(TorsoX + TorsoW, TorsoY), UDim2.fromOffset(ArmW, ArmH));
     AddPreviewPart('LeftLeg', UDim2.fromOffset(TorsoX, LegsY), UDim2.fromOffset(LegW, LegH));
-    AddPreviewPart('RightLeg', UDim2.fromOffset(TorsoX + LegW, LegsY), UDim2.fromOffset(LegW, LegH));
+    AddPreviewPart('RightLeg', UDim2.fromOffset(TorsoX + LegW + LegGap, LegsY), UDim2.fromOffset(LegW, LegH));
 
-    -- Bounding box wraps the whole rig (arms included) with a little padding.
-    local BoxX = TorsoX - ArmW - 4;
-    local BoxY = RigY - 4;
-    local BoxW = (TorsoW + ArmW * 2) + 8;
-    local BoxH = (HeadH + TorsoH + LegH) + 8;
+    -- Bounding box hugs the rig: arm-to-arm horizontally, head-to-feet
+    -- vertically, with only a couple of pixels of breathing room.
+    local BoxPad = 3;
+    local BoxX = RigX - BoxPad;
+    local BoxY = RigY - BoxPad;
+    local BoxW = RigW + BoxPad * 2;
+    local BoxH = RigH + BoxPad * 2;
 
     -- ESP overlay: box, name, distance, health bar + health number.
     -- NOTE: a Frame's BorderSizePixel is NOT drawn when BackgroundTransparency
@@ -4367,7 +4420,8 @@ function Library:CreateWindow(...)
     AddBoxEdge(UDim2.new(1, -1, 0, 0), UDim2.new(0, 1, 1, 0));   -- right
 
     -- Corner box: four L-shaped brackets instead of a full outline.
-    local CornerLength = 12;
+    -- Brackets run ~22% of each edge, which reads as corners on any box size.
+    local CornerLength = math.max(10, math.floor(math.min(BoxW, BoxH) * 0.22));
     local PreviewCornerBox = Library:Create('Frame', {
         BackgroundTransparency = 1;
         BorderSizePixel = 0;
@@ -4531,32 +4585,36 @@ function Library:CreateWindow(...)
 
     do
         local SpineX = TorsoX + math.floor(TorsoW / 2);
+        local HeadBottom = RigY + HeadH;
         local NeckY = TorsoY;
         local HipY = TorsoY + TorsoH;
-        local ShoulderY = TorsoY + 4;
+        local ShoulderY = TorsoY + 5;
+        local ArmX = math.floor(ArmW / 2);
+        local LegOffset = math.floor(LegW / 2);
 
-        -- head -> neck, spine
-        AddSkeletonLine(UDim2.fromOffset(SpineX, RigY + HeadH), UDim2.fromOffset(1, NeckY - (RigY + HeadH)));
+        -- neck, then spine down the torso
+        AddSkeletonLine(UDim2.fromOffset(SpineX, HeadBottom), UDim2.fromOffset(1, NeckY - HeadBottom + 1));
         AddSkeletonLine(UDim2.fromOffset(SpineX, NeckY), UDim2.fromOffset(1, TorsoH));
-        -- shoulders
-        AddSkeletonLine(UDim2.fromOffset(TorsoX - ArmW + 8, ShoulderY), UDim2.fromOffset(TorsoW + ArmW * 2 - 16, 1));
-        -- arms
-        AddSkeletonLine(UDim2.fromOffset(TorsoX - ArmW + 8, ShoulderY), UDim2.fromOffset(1, ArmH - 4));
-        AddSkeletonLine(UDim2.fromOffset(TorsoX + TorsoW + 8, ShoulderY), UDim2.fromOffset(1, ArmH - 4));
+        -- shoulder line spanning both arms
+        AddSkeletonLine(UDim2.fromOffset(TorsoX - ArmW + ArmX, ShoulderY), UDim2.fromOffset(TorsoW + ArmW, 1));
+        -- arms, centred in each limb block
+        AddSkeletonLine(UDim2.fromOffset(TorsoX - ArmW + ArmX, ShoulderY), UDim2.fromOffset(1, ArmH - 6));
+        AddSkeletonLine(UDim2.fromOffset(TorsoX + TorsoW + ArmX, ShoulderY), UDim2.fromOffset(1, ArmH - 6));
         -- hips
-        AddSkeletonLine(UDim2.fromOffset(TorsoX + 10, HipY), UDim2.fromOffset(TorsoW - 20, 1));
-        -- legs
-        AddSkeletonLine(UDim2.fromOffset(TorsoX + 10, HipY), UDim2.fromOffset(1, LegH));
-        AddSkeletonLine(UDim2.fromOffset(TorsoX + TorsoW - 10, HipY), UDim2.fromOffset(1, LegH));
+        AddSkeletonLine(UDim2.fromOffset(TorsoX + LegOffset, HipY), UDim2.fromOffset(TorsoW - LegW, 1));
+        -- legs, centred in each leg block
+        AddSkeletonLine(UDim2.fromOffset(TorsoX + LegOffset, HipY), UDim2.fromOffset(1, LegH));
+        AddSkeletonLine(UDim2.fromOffset(TorsoX + LegW + LegGap + LegOffset, HipY), UDim2.fromOffset(1, LegH));
     end;
 
-    -- Head circle marker, drawn over the head block.
+    -- Head circle marker, inset inside the head block.
+    local HeadDotInset = 5;
     local PreviewHeadDot = Library:Create('Frame', {
         BackgroundTransparency = 1;
         BorderColor3 = Library.AccentColor;
         BorderSizePixel = 1;
-        Position = UDim2.fromOffset(HeadX + 6, RigY + 5);
-        Size = UDim2.fromOffset(HeadW - 12, HeadH - 10);
+        Position = UDim2.fromOffset(HeadX + HeadDotInset, RigY + HeadDotInset);
+        Size = UDim2.fromOffset(HeadW - HeadDotInset * 2, HeadH - HeadDotInset * 2);
         Visible = false;
         ZIndex = PREVIEW_Z + 9;
         Parent = PreviewCanvas;
