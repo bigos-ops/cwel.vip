@@ -13,8 +13,9 @@ local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 
 -- start of ui font
 -- Built-in Roblox font used across the whole menu.
--- Arcade is a blocky/pixelated face that keeps the tight Linoria feel.
-local UI_FONT = Enum.Font.Arcade;
+-- GothamMedium is the closest built-in match to Segoe UI / Inter: geometric
+-- sans-serif, tight spacing, uniform stroke weight.
+local UI_FONT = Enum.Font.GothamMedium;
 -- end of ui font
 
 local ScreenGui = Instance.new('ScreenGui');
@@ -40,7 +41,7 @@ local Library = {
     MainColor = Color3.fromRGB(31, 31, 33);
     BackgroundColor = Color3.fromRGB(22, 22, 24);
     AccentColor = Color3.fromRGB(112, 107, 181);
-    OutlineColor = Color3.fromRGB(58, 58, 62);
+    OutlineColor = Color3.fromRGB(64, 168, 196); -- blueish-cyan outlines
     RiskColor = Color3.fromRGB(220, 92, 92),
 
     Black = Color3.new(0, 0, 0);
@@ -3106,10 +3107,13 @@ function Library:CreateWindow(...)
             BorderColor3 = 'OutlineColor';
         });
 
+        -- Fill the button and centre on both axes so the label sits dead middle.
         local TabButtonLabel = Library:CreateLabel({
             Position = UDim2.new(0, 0, 0, 0);
-            Size = UDim2.new(1, 0, 1, -1);
+            Size = UDim2.new(1, 0, 1, 0);
             Text = Name;
+            TextXAlignment = Enum.TextXAlignment.Center;
+            TextYAlignment = Enum.TextYAlignment.Center;
             ZIndex = 1;
             Parent = TabButton;
         });
