@@ -13,7 +13,8 @@ local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 
 -- start of ui font
 -- Built-in Roblox font used across the whole menu.
-local UI_FONT = Enum.Font.SourceSansSemibold;
+-- Arcade is a blocky/pixelated face that keeps the tight Linoria feel.
+local UI_FONT = Enum.Font.Arcade;
 -- end of ui font
 
 local ScreenGui = Instance.new('ScreenGui');
@@ -3839,11 +3840,18 @@ function Library:CreateWindow(...)
     end;
 
     -- Rig layout (torso is the anchor; everything touches it edge-to-edge).
-    local RigX, RigY = 62, 38;
     local TorsoW, TorsoH = 48, 72;
     local ArmW, ArmH = 16, 66;
     local LegW, LegH = 24, 72;
     local HeadW, HeadH = 30, 26;
+
+    -- The preview panel is a fixed 220x330, so the canvas ends up 176x253.
+    -- Centre the rig (arms included) inside it instead of using a fixed offset.
+    local CanvasW, CanvasH = 176, 253;
+    local RigW = TorsoW + ArmW * 2;              -- full body width (arm to arm)
+    local RigH = HeadH + TorsoH + LegH;          -- full body height (head to feet)
+    local RigX = math.floor((CanvasW - RigW) / 2);
+    local RigY = math.floor((CanvasH - RigH) / 2);
 
     local TorsoX = RigX + ArmW;                 -- torso sits right of the left arm
     local TorsoY = RigY + HeadH;                -- torso starts where the head ends
