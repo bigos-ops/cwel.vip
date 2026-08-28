@@ -13,7 +13,7 @@ local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 
 -- start of ui font
 -- Built-in Roblox font used across the whole menu.
-local UI_FONT = Enum.Font.Gotham;
+local UI_FONT = Enum.Font.SourceSansSemibold;
 -- end of ui font
 
 local ScreenGui = Instance.new('ScreenGui');
@@ -3798,7 +3798,8 @@ function Library:CreateWindow(...)
         BorderColor3 = 'OutlineColor';
     });
 
-    -- Blocky rig: head, torso, two arms, two legs.
+    -- Blocky rig: head, torso, two arms, two legs. Limbs are flush against the
+    -- torso (no gaps) so the dummy reads as one connected body.
     local PreviewParts = {};
     local function AddPreviewPart(Name, Position, Size)
         local Part = Library:Create('Frame', {
@@ -3820,20 +3821,38 @@ function Library:CreateWindow(...)
         PreviewParts[Name] = Part;
     end;
 
-    AddPreviewPart('Head', UDim2.fromOffset(74, 40), UDim2.fromOffset(34, 28));
-    AddPreviewPart('Torso', UDim2.fromOffset(66, 72), UDim2.fromOffset(50, 74));
-    AddPreviewPart('LeftArm', UDim2.fromOffset(46, 74), UDim2.fromOffset(18, 68));
-    AddPreviewPart('RightArm', UDim2.fromOffset(118, 74), UDim2.fromOffset(18, 68));
-    AddPreviewPart('LeftLeg', UDim2.fromOffset(68, 150), UDim2.fromOffset(21, 78));
-    AddPreviewPart('RightLeg', UDim2.fromOffset(92, 150), UDim2.fromOffset(21, 78));
+    -- Rig layout (torso is the anchor; everything touches it edge-to-edge).
+    local RigX, RigY = 62, 38;
+    local TorsoW, TorsoH = 48, 72;
+    local ArmW, ArmH = 16, 66;
+    local LegW, LegH = 24, 72;
+    local HeadW, HeadH = 30, 26;
 
-    -- ESP overlay: box, name, distance, health bar.
+    local TorsoX = RigX + ArmW;                 -- torso sits right of the left arm
+    local TorsoY = RigY + HeadH;                -- torso starts where the head ends
+    local HeadX = TorsoX + (TorsoW - HeadW) / 2; -- head centred on torso
+    local LegsY = TorsoY + TorsoH;              -- legs start where the torso ends
+
+    AddPreviewPart('Head', UDim2.fromOffset(HeadX, RigY), UDim2.fromOffset(HeadW, HeadH));
+    AddPreviewPart('Torso', UDim2.fromOffset(TorsoX, TorsoY), UDim2.fromOffset(TorsoW, TorsoH));
+    AddPreviewPart('LeftArm', UDim2.fromOffset(TorsoX - ArmW, TorsoY), UDim2.fromOffset(ArmW, ArmH));
+    AddPreviewPart('RightArm', UDim2.fromOffset(TorsoX + TorsoW, TorsoY), UDim2.fromOffset(ArmW, ArmH));
+    AddPreviewPart('LeftLeg', UDim2.fromOffset(TorsoX, LegsY), UDim2.fromOffset(LegW, LegH));
+    AddPreviewPart('RightLeg', UDim2.fromOffset(TorsoX + LegW, LegsY), UDim2.fromOffset(LegW, LegH));
+
+    -- Bounding box wraps the whole rig (arms included) with a little padding.
+    local BoxX = TorsoX - ArmW - 4;
+    local BoxY = RigY - 4;
+    local BoxW = (TorsoW + ArmW * 2) + 8;
+    local BoxH = (HeadH + TorsoH + LegH) + 8;
+
+    -- ESP overlay: box, name, distance, health bar + health number.
     local PreviewBox = Library:Create('Frame', {
         BackgroundTransparency = 1;
         BorderColor3 = Library.AccentColor;
         BorderSizePixel = 1;
-        Position = UDim2.fromOffset(42, 36);
-        Size = UDim2.fromOffset(98, 196);
+        Position = UDim2.fromOffset(BoxX, BoxY);
+        Size = UDim2.fromOffset(BoxW, BoxH);
         ZIndex = PREVIEW_Z + 7;
         Parent = PreviewCanvas;
     });
@@ -3843,8 +3862,8 @@ function Library:CreateWindow(...)
     });
 
     local PreviewName = Library:CreateLabel({
-        Position = UDim2.fromOffset(0, 17);
-        Size = UDim2.new(1, 0, 0, 16);
+        Position = UDim2.fromOffset(BoxX - 40, BoxY - 17);
+        Size = UDim2.fromOffset(BoxW + 80, 16);
         Text = 'ExamplePlayer';
         TextColor3 = Library.AccentColor;
         TextSize = 14;
@@ -3857,8 +3876,8 @@ function Library:CreateWindow(...)
     });
 
     local PreviewDistance = Library:CreateLabel({
-        Position = UDim2.fromOffset(0, 234);
-        Size = UDim2.new(1, 0, 0, 16);
+        Position = UDim2.fromOffset(BoxX - 40, BoxY + BoxH + 2);
+        Size = UDim2.fromOffset(BoxW + 80, 16);
         Text = '[ 42m ]';
         TextColor3 = Library.FontColor;
         TextSize = 13;
@@ -3870,8 +3889,8 @@ function Library:CreateWindow(...)
         BackgroundColor3 = Library.BackgroundColor;
         BorderColor3 = Library.Black;
         BorderSizePixel = 1;
-        Position = UDim2.fromOffset(35, 36);
-        Size = UDim2.fromOffset(4, 196);
+        Position = UDim2.fromOffset(BoxX - 7, BoxY);
+        Size = UDim2.fromOffset(4, BoxH);
         ZIndex = PREVIEW_Z + 7;
         Parent = PreviewCanvas;
     });
@@ -3895,6 +3914,18 @@ function Library:CreateWindow(...)
         BackgroundColor3 = 'AccentColor';
     });
 
+    -- Health number, sits next to the top of the health bar.
+    local PreviewHealthText = Library:CreateLabel({
+        Position = UDim2.fromOffset(BoxX - 40, BoxY + math.floor(BoxH * 0.22) - 8);
+        Size = UDim2.fromOffset(30, 16);
+        Text = '78';
+        TextColor3 = Library.FontColor;
+        TextSize = 13;
+        TextXAlignment = Enum.TextXAlignment.Right;
+        ZIndex = PREVIEW_Z + 8;
+        Parent = PreviewCanvas;
+    });
+
     local Preview = {};
     Preview.Visible = true;
 
@@ -3915,6 +3946,7 @@ function Library:CreateWindow(...)
     end;
     function Preview:SetHealthVisible(Value)
         PreviewHealth.Visible = Value;
+        PreviewHealthText.Visible = Value;
     end;
     function Preview:SetBoxVisible(Value)
         PreviewBox.Visible = Value;
